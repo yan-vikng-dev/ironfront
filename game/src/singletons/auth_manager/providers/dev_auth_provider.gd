@@ -20,4 +20,4 @@ func _complete_sign_in() -> void:
 	_end_sign_in_operation()
 	var instance_id: String = Env.get_env("instance_id", "0")
 	var proof: String = "dev-%s" % [instance_id]
-	sign_in_succeeded.emit(AuthResult.new("dev", proof, 0))
+	sign_in_succeeded.emit("dev", proof)

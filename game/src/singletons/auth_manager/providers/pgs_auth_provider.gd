@@ -65,7 +65,7 @@ func _on_server_side_access_requested(server_auth_code: String) -> void:
 	if trimmed_auth_code.is_empty():
 		sign_in_failed.emit("PGS_SERVER_AUTH_CODE_MISSING")
 		return
-	sign_in_succeeded.emit(AuthResult.new("pgs", trimmed_auth_code, 0))
+	sign_in_succeeded.emit("pgs", trimmed_auth_code)
 
 
 func _ensure_plugin_ready() -> bool:

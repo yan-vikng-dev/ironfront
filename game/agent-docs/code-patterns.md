@@ -172,5 +172,149 @@ account.set_selected_tank_spec(item.tank_spec)
 Utils.connect_checked(account.selected_tank_spec_updated, _update_item_states)
 ```
 
+## 15) Avoid Overdefensive API Methods
+- Avoid deeply nested and overdefensive single-method flows for straightforward HTTP operations.
+- Prefer direct, linear control flow with a clear success/failure boundary.
+
+Good (current `src/api/user_service/user_service_client.gd` pattern):
+```gdscript
+class ApiResult:
+	extends RefCounted
+	var success: bool
+	var reason: String
+	var body: Variant
+
+	static func ok(next_body: Variant) -> ApiResult:
+		return ApiResult.new(true, "", next_body)
+
+	static func fail(next_reason: String) -> ApiResult:
+		return ApiResult.new(false, next_reason, null)
+
+
+func update_username(username: String) -> ApiResult:
+	var session_token: String = AuthManager.session_token
+	var normalized_username: String = username.strip_edges()
+	if session_token.is_empty() or normalized_username.is_empty():
+		var preflight_reason: String = "NOT_SIGNED_IN" if session_token.is_empty() else ""
+		if preflight_reason.is_empty() and normalized_username.is_empty():
+			preflight_reason = "USERNAME_REQUIRED"
+		return ApiResult.fail(preflight_reason)
+
+	var patch_result: ApiResult = await _request_json(
+		"%s/me/username" % _base_url,
+		HTTPClient.METHOD_PATCH,
+		[
+			"Content-Type: application/json",
+			"Authorization: Bearer %s" % session_token,
+		],
+		JSON.stringify({"username": normalized_username})
+	)
+	if not patch_result.success:
+		return ApiResult.fail(patch_result.reason)
+
+	var body: Dictionary = patch_result.body
+	var response_username: String = str(body.get("username", "")).strip_edges()
+	if response_username.is_empty():
+		return ApiResult.fail("USERNAME_INVALID_RESPONSE")
+
+	Account.username = response_username
+	var username_updated_at_unix: Variant = body.username_updated_at_unix
+	Account.username_updated_at = int(username_updated_at_unix) if username_updated_at_unix != null else 0
+	return ApiResult.ok(body)
+
+
+func _request_json(
+	url: String, method: HTTPClient.Method, headers: PackedStringArray, body: String
+) -> ApiResult:
+	if not is_inside_tree():
+		return ApiResult.fail("USER_SERVICE_HTTP_REQUEST_CANCELED")
+	var request: HTTPRequest = HTTPRequest.new()
+	add_child(request)
+	var request_error: Error = request.request(url, headers, method, body)
+	if request_error != OK:
+		request.queue_free()
+		return ApiResult.fail("USER_SERVICE_HTTP_REQUEST_FAILED")
+	var response: Array = await request.request_completed
+	if is_instance_valid(request):
+		request.queue_free()
+	if int(response[0]) != HTTPRequest.RESULT_SUCCESS:
+		return ApiResult.fail("USER_SERVICE_HTTP_TRANSPORT_FAILED")
+	var response_code: int = int(response[1])
+	var parsed_body: Variant = JSON.parse_string(response[3].get_string_from_utf8())
+	var parsed: Dictionary = parsed_body if parsed_body is Dictionary else {}
+	if response_code < 200 or response_code >= 300:
+		return ApiResult.fail(str(parsed.get("error", "USER_SERVICE_HTTP_ERROR")))
+	return ApiResult.ok(parsed)
+```
+
+Bad (from `src/api/user_service/user_service_client.gd:update_username`):
+```gdscript
+func update_username(username: String) -> Dictionary[String, Variant]:
+	var result: Dictionary[String, Variant] = {"success": false, "reason": "", "data": {}}
+	var session_token: String = AuthManager.session_token
+	if session_token.is_empty():
+		result.reason = "NOT_SIGNED_IN"
+	else:
+		var normalized_username: String = username.strip_edges()
+		if normalized_username.is_empty():
+			result.reason = "USERNAME_REQUIRED"
+		else:
+			_log_user_service("updating username")
+			var patch_url: String = "%s/me/username" % _base_url
+			var request: HTTPRequest = HTTPRequest.new()
+			add_child(request)
+			var request_error: Error = (
+				request
+				. request(
+					patch_url,
+					[
+						"Content-Type: application/json",
+						"Authorization: Bearer %s" % session_token,
+					],
+					HTTPClient.METHOD_PATCH,
+					JSON.stringify({"username": normalized_username})
+				)
+			)
+			if request_error != OK:
+				request.queue_free()
+				result.reason = "USER_SERVICE_HTTP_REQUEST_FAILED"
+			else:
+				var response: Array = await request.request_completed
+				if is_instance_valid(request):
+					request.queue_free()
+				var transport_result: int = int(response[0])
+				if transport_result != HTTPRequest.RESULT_SUCCESS:
+					result.reason = "USER_SERVICE_HTTP_TRANSPORT_FAILED"
+				else:
+					var response_code: int = int(response[1])
+					var response_body: PackedByteArray = response[3]
+					var parsed_body: Variant = JSON.parse_string(
+						response_body.get_string_from_utf8()
+					)
+					var parsed_dictionary: Dictionary = (
+						parsed_body if parsed_body is Dictionary else {}
+					)
+					result.data = parsed_dictionary
+					if response_code < 200 or response_code >= 300:
+						result.reason = str(
+							parsed_dictionary.get("error", "USERNAME_UPDATE_FAILED")
+						)
+					else:
+						var response_username: String = (
+							str(parsed_dictionary.get("username", "")).strip_edges()
+						)
+						if response_username.is_empty():
+							result.reason = "USERNAME_INVALID_RESPONSE"
+						else:
+							Account.username = response_username
+							Account.username_updated_at = int(
+								parsed_dictionary.get("username_updated_at_unix", 0)
+							)
+							result.success = true
+							result.reason = ""
+
+	return result
+```
+
 ## Documentation Requirement
 - When a new pattern is adopted in this repo, update this file with a concrete good/bad example.

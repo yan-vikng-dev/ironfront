@@ -30,6 +30,7 @@ GameplayBus="*res://src/singletons/gameplay_bus.gd"
 MultiplayerBus="*res://src/singletons/multiplayer_bus.gd"
 AppConfig="*res://src/config/app_config.gd"
 Account="*res://src/singletons/account/account.gd"
+AuthManager="*res://src/singletons/auth_manager/auth_manager.gd"
 GodotPlayGameServices="*uid://d0ahkopwqod3r"
 
 [debug]

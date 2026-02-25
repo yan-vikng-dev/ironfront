@@ -1,7 +1,7 @@
 class_name AuthProvider
 extends Node
 
-signal sign_in_succeeded(result: AuthResult)
+signal sign_in_succeeded(provider: String, proof: String)
 signal sign_in_failed(reason: String)
 signal sign_out_completed
 

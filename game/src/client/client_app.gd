@@ -94,7 +94,7 @@ func _on_arena_finished(_summary: Dictionary) -> void:
 
 
 func _on_logout_requested() -> void:
-	Account.clear()
+	AuthManager.sign_out()
 	_mount_login_root()
 
 

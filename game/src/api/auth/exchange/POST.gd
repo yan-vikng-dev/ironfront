@@ -19,7 +19,7 @@ func invoke(provider: String, proof: String) -> ApiResult:
 	if not exchange_result.success:
 		return ApiResult.fail(exchange_result.reason)
 
-	var exchange_body: UserServiceExchangeResponseBody = UserServiceExchangeResponseBody.from_dict(
+	var exchange_body: UserServiceExchangeResponseBody = UserServiceExchangeResponseBody.parse(
 		exchange_result.body
 	)
 	if exchange_body == null:

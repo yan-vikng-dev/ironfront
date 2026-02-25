@@ -22,6 +22,8 @@ import {
   pgsWebClientId,
   pgsWebClientSecret,
   pgsWebClientSecretName,
+  ticketSigningPrivateKey,
+  ticketSigningSecretName,
   enableCustomDomain,
   imageTag,
   maxInstanceCount,
@@ -59,29 +61,39 @@ const { databaseInstance, databaseUrlSecret, databaseUrlSecretVersion } = create
   dependsOn: enabledServices
 });
 
-let pgsWebClientSecretId: pulumi.Output<string> | undefined;
-let pgsWebClientSecretVersion: gcp.secretmanager.SecretVersion | undefined;
-if (pgsWebClientId && pgsWebClientSecret && pgsWebClientSecretName) {
-  const pgsSecret = new gcp.secretmanager.Secret(
-    pgsWebClientSecretName,
-    {
-      project,
-      secretId: pgsWebClientSecretName,
-      replication: {
-        auto: {}
-      }
-    },
-    { dependsOn: enabledServices }
-  );
-  pgsWebClientSecretVersion = new gcp.secretmanager.SecretVersion(
-    `${pgsWebClientSecretName}-current`,
-    {
-      secret: pgsSecret.id,
-      secretData: pgsWebClientSecret
-    }
-  );
-  pgsWebClientSecretId = pgsSecret.secretId;
-}
+const pgsSecret = new gcp.secretmanager.Secret(
+  pgsWebClientSecretName,
+  {
+    project,
+    secretId: pgsWebClientSecretName,
+    replication: { auto: {} }
+  },
+  { dependsOn: enabledServices }
+);
+const pgsWebClientSecretVersion = new gcp.secretmanager.SecretVersion(
+  `${pgsWebClientSecretName}-current`,
+  {
+    secret: pgsSecret.id,
+    secretData: pgsWebClientSecret
+  }
+);
+
+const ticketSigningSecret = new gcp.secretmanager.Secret(
+  ticketSigningSecretName,
+  {
+    project,
+    secretId: ticketSigningSecretName,
+    replication: { auto: {} }
+  },
+  { dependsOn: enabledServices }
+);
+const ticketSigningSecretVersion = new gcp.secretmanager.SecretVersion(
+  `${ticketSigningSecretName}-current`,
+  {
+    secret: ticketSigningSecret.id,
+    secretData: ticketSigningPrivateKey
+  }
+);
 
 const { service, image } = createCloudRunService({
   project,
@@ -98,9 +110,14 @@ const { service, image } = createCloudRunService({
   serviceAccountEmail: runServiceAccount.email,
   databaseConnectionName: databaseInstance.connectionName,
   databaseUrlSecretId: databaseUrlSecret.secretId,
-  pgsWebClientId: pgsWebClientId || undefined,
-  pgsWebClientSecretId,
-  dependsOn: [databaseUrlSecretVersion, ...(pgsWebClientSecretVersion ? [pgsWebClientSecretVersion] : [])]
+  pgsWebClientId,
+  pgsWebClientSecretId: pgsSecret.secretId,
+  ticketSigningPrivateKeyId: ticketSigningSecret.secretId,
+  dependsOn: [
+    databaseUrlSecretVersion,
+    pgsWebClientSecretVersion,
+    ticketSigningSecretVersion
+  ]
 });
 
 let customDomainIpAddress: pulumi.Output<string> | undefined;
@@ -120,4 +137,5 @@ export const deployedImage = image;
 export const customDomainDnsARecord = customDomainIpAddress;
 export const cloudSqlInstanceConnectionName = databaseInstance.connectionName;
 export const databaseUrlSecretId = databaseUrlSecret.secretId;
-export const pgsWebClientSecretResourceId = pgsWebClientSecretId;
+export const pgsWebClientSecretResourceId = pgsSecret.secretId;
+export const ticketSigningPrivateKeyResourceId = ticketSigningSecret.secretId;

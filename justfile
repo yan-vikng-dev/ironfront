@@ -9,3 +9,6 @@ fix: game::fix infra::fix user-service::fix matchmaker::fix fleet::fix
 
 gcloud:
 	gcloud config configurations activate ironfront
+
+gcloud-adc:
+	gcloud auth application-default login

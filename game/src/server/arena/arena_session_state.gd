@@ -322,9 +322,6 @@ func _validate_requested_loadout(requested_loadout: Dictionary) -> Dictionary:
 	var validation_result: Dictionary = {"valid": false, "message": "INVALID TANK CONFIGURATION"}
 	var requested_tank_id: String = str(requested_loadout.get("tank_id", "")).strip_edges()
 	var requested_shell_loadout_by_id: Dictionary = requested_loadout.get("shell_loadout_by_id", {})
-	var requested_selected_shell_id: String = (
-		str(requested_loadout.get("selected_shell_id", "")).strip_edges()
-	)
 
 	var tank_id: String = requested_tank_id if not requested_tank_id.is_empty() else DEFAULT_TANK_ID
 	var tank_spec: TankSpec = TankManager.find_tank_spec(tank_id)
@@ -348,11 +345,7 @@ func _validate_requested_loadout(requested_loadout: Dictionary) -> Dictionary:
 		elif total_shell_count > tank_spec.shell_capacity:
 			validation_result["message"] = "SHELL CAPACITY EXCEEDED"
 		else:
-			selected_shell_spec = _resolve_allowed_shell_spec(
-				ammo_by_shell_spec, requested_selected_shell_id
-			)
-			if selected_shell_spec == null:
-				selected_shell_spec = _pick_first_shell_with_ammo(ammo_by_shell_spec)
+			selected_shell_spec = _pick_first_shell_with_ammo(ammo_by_shell_spec)
 			if selected_shell_spec == null:
 				validation_result["message"] = "NO USABLE SHELL"
 			else:
@@ -361,19 +354,6 @@ func _validate_requested_loadout(requested_loadout: Dictionary) -> Dictionary:
 				validation_result["selected_shell_spec"] = selected_shell_spec
 				validation_result["ammo_by_shell_spec"] = ammo_by_shell_spec
 	return validation_result
-
-
-func _resolve_allowed_shell_spec(ammo_by_shell_spec: Dictionary, shell_id: String) -> ShellSpec:
-	if shell_id.is_empty():
-		return null
-	var shell_spec: ShellSpec = ShellManager.find_shell_spec(shell_id)
-	if shell_spec == null:
-		return null
-	if not ammo_by_shell_spec.has(shell_spec):
-		return null
-	if int(ammo_by_shell_spec.get(shell_spec, 0)) <= 0:
-		return null
-	return shell_spec
 
 
 func _pick_first_shell_with_ammo(ammo_by_shell_spec: Dictionary) -> ShellSpec:

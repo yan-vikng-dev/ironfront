@@ -10,15 +10,30 @@ if (!databaseUrl) {
 }
 const pgsWebClientId = (process.env.PGS_WEB_CLIENT_ID ?? "").trim();
 const pgsWebClientSecret = (process.env.PGS_WEB_CLIENT_SECRET ?? "").trim();
+function decodeTicketSigningPrivateKey(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed) return "";
+  if (trimmed.startsWith("-----BEGIN")) return trimmed;
+  return Buffer.from(trimmed, "base64").toString("utf8");
+}
+
+const ticketSigningPrivateKey = decodeTicketSigningPrivateKey(
+  process.env.TICKET_SIGNING_PRIVATE_KEY ?? ""
+);
 if (stageValue === "prod" && (!pgsWebClientId || !pgsWebClientSecret)) {
   throw new Error("PGS_WEB_CLIENT_ID and PGS_WEB_CLIENT_SECRET are required for STAGE=prod");
+}
+if (stageValue === "prod" && !ticketSigningPrivateKey) {
+  throw new Error("TICKET_SIGNING_PRIVATE_KEY is required for STAGE=prod");
 }
 
 export const config = {
   port: Number(process.env.PORT ?? 8080),
   stage: stageValue as Stage,
   sessionTtlSeconds: Number(process.env.SESSION_TTL_SECONDS ?? 86_400),
+  ticketTtlSeconds: Number(process.env.TICKET_TTL_SECONDS ?? 90),
   databaseUrl,
   pgsWebClientId,
-  pgsWebClientSecret
+  pgsWebClientSecret,
+  ticketSigningPrivateKey
 };

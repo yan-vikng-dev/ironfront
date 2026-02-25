@@ -15,8 +15,9 @@ type CloudRunArgs = {
   serviceAccountEmail: gcp.serviceaccount.Account["email"];
   databaseConnectionName: gcp.sql.DatabaseInstance["connectionName"];
   databaseUrlSecretId: gcp.secretmanager.Secret["secretId"];
-  pgsWebClientId?: string;
-  pgsWebClientSecretId?: gcp.secretmanager.Secret["secretId"];
+  pgsWebClientId: string;
+  pgsWebClientSecretId: gcp.secretmanager.Secret["secretId"];
+  ticketSigningPrivateKeyId: gcp.secretmanager.Secret["secretId"];
   dependsOn: gcp.secretmanager.SecretVersion[];
 };
 
@@ -35,18 +36,25 @@ export function createCloudRunService(args: CloudRunArgs) {
       }
     }
   ];
-  if (args.pgsWebClientId && args.pgsWebClientSecretId) {
-    envs.push({ name: "PGS_WEB_CLIENT_ID", value: args.pgsWebClientId });
-    envs.push({
-      name: "PGS_WEB_CLIENT_SECRET",
-      valueSource: {
-        secretKeyRef: {
-          secret: args.pgsWebClientSecretId,
-          version: "latest"
-        }
+  envs.push({ name: "PGS_WEB_CLIENT_ID", value: args.pgsWebClientId });
+  envs.push({
+    name: "PGS_WEB_CLIENT_SECRET",
+    valueSource: {
+      secretKeyRef: {
+        secret: args.pgsWebClientSecretId,
+        version: "latest"
       }
-    });
-  }
+    }
+  });
+  envs.push({
+    name: "TICKET_SIGNING_PRIVATE_KEY",
+    valueSource: {
+      secretKeyRef: {
+        secret: args.ticketSigningPrivateKeyId,
+        version: "latest"
+      }
+    }
+  });
 
   const service = new gcp.cloudrunv2.Service(
     args.serviceName,

@@ -12,8 +12,18 @@ type AccountEconomy = {
 };
 
 export type AccountLoadout = {
-  selected_tank_id: string | null;
+  selected_tank_id: string;
   tanks: Record<string, AccountTankLoadout>;
+};
+
+const STARTER_LOADOUT: AccountLoadout = {
+  selected_tank_id: "m4a1_sherman",
+  tanks: {
+    m4a1_sherman: {
+      unlocked_shell_ids: ["m4a1_sherman.m75"],
+      shell_loadout_by_id: { "m4a1_sherman.m75": 70 }
+    }
+  }
 };
 
 export const accounts = pgTable("accounts", {
@@ -24,7 +34,7 @@ export const accounts = pgTable("accounts", {
   loadout: jsonb()
     .notNull()
     .$type<AccountLoadout>()
-    .default({selected_tank_id: null, tanks: {}}),
+    .default(STARTER_LOADOUT),
   created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
   updated_at: timestamp({ withTimezone: true }).notNull().defaultNow()
 });

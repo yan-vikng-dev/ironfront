@@ -1,7 +1,7 @@
 class_name ServerSessionApi
 extends Node
 
-signal arena_join_requested(peer_id: int, player_name: String, requested_loadout: Dictionary)
+signal arena_join_requested(peer_id: int, ticket: String)
 signal arena_leave_requested(peer_id: int)
 
 var protocol_version: int = MultiplayerProtocol.PROTOCOL_VERSION
@@ -17,17 +17,16 @@ func _receive_server_hello_ack(_server_protocol_version: int, _server_unix_time:
 
 
 @rpc("any_peer", "reliable")
-func _receive_client_hello(client_protocol_version: int, player_name: String) -> void:
+func _receive_client_hello(client_protocol_version: int) -> void:
 	var peer_id: int = multiplayer.get_remote_sender_id()
 	print("[server][join] client_hello peer=%d protocol=%d" % [peer_id, client_protocol_version])
-	print("[server] client_hello peer=%d player=%s" % [peer_id, player_name])
 	_receive_server_hello_ack.rpc_id(peer_id, protocol_version, Time.get_unix_time_from_system())
 
 
 @rpc("any_peer", "reliable")
-func _join_arena(player_name: String, requested_loadout: Dictionary) -> void:
+func _join_arena(ticket: String) -> void:
 	var peer_id: int = multiplayer.get_remote_sender_id()
-	arena_join_requested.emit(peer_id, player_name, requested_loadout)
+	arena_join_requested.emit(peer_id, ticket)
 
 
 @rpc("any_peer", "reliable")

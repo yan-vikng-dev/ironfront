@@ -33,6 +33,8 @@ Env: `infra/.env.prod` for prod (db-migrate); `infra/.env.dev` for local dev (ju
 - `user-service-infra:pgsWebClientId`
 - `user-service-infra:pgsWebClientSecretName`
 - `user-service-infra:pgsWebClientSecret` (set via `pulumi config set --secret`)
+- `user-service-infra:ticketSigningSecretName`
+- `user-service-infra:ticketSigningPrivateKey` (base64-encoded PEM, set via `pulumi config set --secret ticketSigningPrivateKey "$(base64 < ticket_private.pem)"`)
 
 ## Database + Secret Flow
 - Provisions Cloud SQL Postgres instance/database/user.

@@ -127,28 +127,3 @@ func unlock_tank(tank_spec: TankSpec) -> bool:
 	if next_tanks.size() == 1:
 		selected_tank_spec = tank_spec
 	return true
-
-
-func to_join_arena_payload() -> Dictionary:
-	var selected_spec: TankSpec = selected_tank_spec
-	assert(selected_spec != null, "AccountLoadout: selected_tank_spec is null for join payload")
-	var tank_config: TankConfig = get_selected_tank_config()
-	var shell_loadout_by_id: Dictionary = {}
-	for shell_spec_key: Variant in tank_config.shell_loadout_by_spec.keys():
-		var shell_spec: ShellSpec = shell_spec_key as ShellSpec
-		if shell_spec == null:
-			continue
-		var shell_id: String = ShellManager.get_shell_id(shell_spec)
-		shell_loadout_by_id[shell_id] = int(tank_config.shell_loadout_by_spec[shell_spec_key])
-	var selected_shell_id: String = ""
-	for shell_spec: ShellSpec in selected_spec.allowed_shells:
-		var shell_id: String = ShellManager.get_shell_id(shell_spec)
-		var shell_count: int = int(shell_loadout_by_id.get(shell_id, 0))
-		if shell_count > 0:
-			selected_shell_id = shell_id
-			break
-	return {
-		"tank_id": selected_spec.tank_id,
-		"shell_loadout_by_id": shell_loadout_by_id,
-		"selected_shell_id": selected_shell_id,
-	}

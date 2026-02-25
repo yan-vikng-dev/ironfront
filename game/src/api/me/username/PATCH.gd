@@ -34,4 +34,4 @@ func invoke(username: String) -> ApiResult:
 		return ApiResult.fail("USERNAME_INVALID_RESPONSE")
 	Account.username = response.username
 	Account.username_updated_at = response.username_updated_at_unix
-	return ApiResult.ok(patch_result.body)
+	return patch_result

@@ -3,7 +3,7 @@ set shell := ["zsh", "-uc"]
 default_instance := "ironfront-server"
 default_zone := "europe-west1-b"
 default_remote_dir := "~/ironfront"
-default_server_port := "7000"
+default_server_port := "47111"
 godot_bin := "${GODOT_BIN:-/Applications/Godot.app/Contents/MacOS/Godot}"
 gdlint_bin := "${GDLINT_BIN:-/Users/yan/Library/Python/3.12/bin/gdlint}"
 gdformat_bin := "${GDFORMAT_BIN:-/Users/yan/Library/Python/3.12/bin/gdformat}"
@@ -19,19 +19,6 @@ refresh-cache:
 # Run local dedicated server runtime.
 server-local port=default_server_port:
 	{{godot_bin}} --headless --path . -- --server --port={{port}}
-
-# Run local development stack: one server + two clients.
-dev:
-	mkdir -p dist/dev-logs
-	{{godot_bin}} --headless --path . -- --server > dist/dev-logs/server.log 2>&1 &
-	server_pid=$!
-	{{godot_bin}} --path . -- --host=127.0.0.1 --stage=dev --instance_id=1 > dist/dev-logs/client1.log 2>&1 &
-	client1_pid=$!
-	{{godot_bin}} --path . -- --host=127.0.0.1 --stage=dev --instance_id=2 > dist/dev-logs/client2.log 2>&1 &
-	client2_pid=$!
-	echo "started server pid=$server_pid client1 pid=$client1_pid client2 pid=$client2_pid"
-	trap 'kill $server_pid $client1_pid $client2_pid 2>/dev/null || true' INT TERM EXIT
-	wait $server_pid $client1_pid $client2_pid
 
 # Lint all GDScript files (static checks).
 lint:

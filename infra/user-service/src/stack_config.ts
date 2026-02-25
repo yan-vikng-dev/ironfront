@@ -26,18 +26,8 @@ export const dbDeletionProtection = stackCfg.requireBoolean("dbDeletionProtectio
 export const cloudRunDeletionProtection = stackCfg.getBoolean("cloudRunDeletionProtection") ?? true;
 export const dbSecretName = stackCfg.require("dbSecretName");
 export const dbVersion = stackCfg.require("dbVersion");
-export const pgsWebClientId = stackCfg.get("pgsWebClientId") ?? "";
-export const pgsWebClientSecret = stackCfg.getSecret("pgsWebClientSecret");
-export const pgsWebClientSecretName = stackCfg.get("pgsWebClientSecretName") ?? "";
-
-if (stage === "prod") {
-  if (!pgsWebClientId) {
-    throw new Error("user-service-infra:pgsWebClientId is required for prod");
-  }
-  if (!pgsWebClientSecretName) {
-    throw new Error("user-service-infra:pgsWebClientSecretName is required for prod");
-  }
-  if (!pgsWebClientSecret) {
-    throw new Error("user-service-infra:pgsWebClientSecret is required for prod");
-  }
-}
+export const pgsWebClientId = stackCfg.require("pgsWebClientId");
+export const pgsWebClientSecret = stackCfg.requireSecret("pgsWebClientSecret");
+export const pgsWebClientSecretName = stackCfg.require("pgsWebClientSecretName");
+export const ticketSigningPrivateKey = stackCfg.requireSecret("ticketSigningPrivateKey");
+export const ticketSigningSecretName = stackCfg.require("ticketSigningSecretName");

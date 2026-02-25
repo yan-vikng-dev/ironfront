@@ -67,7 +67,7 @@ func _on_sign_in_attempt_completed(
 		login_failed.emit(reason)
 		return
 	if username_setup_required:
-		_panel.set_idle("RETRY AUTH")
+		_panel.set_idle("SET USERNAME")
 		_panel.show_username_prompt(Account.username)
 		return
 	_panel.hide_username_prompt()

@@ -11,6 +11,7 @@ const DEFAULT_PGS_SERVER_CLIENT_ID: String = (
 var stage: String = STAGE_DEV
 var user_service_base_url: String = DEV_USER_SERVICE_BASE_URL
 var pgs_server_client_id: String = ""
+var ticket_verification_public_key: CryptoKey
 
 
 func _enter_tree() -> void:
@@ -26,6 +27,11 @@ func _enter_tree() -> void:
 	var override_client_id: String = str(Env.get_env("pgs-server-client-id", "")).strip_edges()
 	pgs_server_client_id = (
 		override_client_id if not override_client_id.is_empty() else DEFAULT_PGS_SERVER_CLIENT_ID
+	)
+
+	ticket_verification_public_key = CryptoKey.new()
+	ticket_verification_public_key.load_from_string(
+		FileAccess.get_file_as_string("res://src/config/ticket_public.pem"), true
 	)
 
 

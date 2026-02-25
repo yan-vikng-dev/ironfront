@@ -20,7 +20,7 @@ const ARENA_SESSION_RUNTIME_SCENE: PackedScene = preload(
 )
 
 var default_connect_host: String = "ironfront.vikng.dev"
-var default_connect_port: int = 7000
+var default_connect_port: int = 47_111
 var protocol_version: int = MultiplayerProtocol.PROTOCOL_VERSION
 var phase: ArenaPhase = ArenaPhase.DISCONNECTED
 var cancel_join_requested: bool = false
@@ -120,8 +120,18 @@ func end_session(status_message: String) -> void:
 
 
 func _send_join_arena() -> void:
-	var join_loadout_payload: Dictionary = Account.loadout.to_join_arena_payload()
-	session_api.send_join_arena(Account.username, join_loadout_payload)
+	var ticket_result: ApiResult = await AuthManager.user_service_client.fetch_play_ticket()
+	if not ticket_result.success:
+		push_warning("[client][arena] ticket_fetch_failed reason=%s" % ticket_result.reason)
+		_emit_join_failed(ticket_result.reason)
+		_reset_to_disconnected()
+		return
+	var response: PlayTicketResponse = ticket_result.body
+	if response == null or response.ticket.is_empty():
+		_emit_join_failed("TICKET_FETCH_FAILED")
+		_reset_to_disconnected()
+		return
+	session_api.send_join_arena(response.ticket)
 
 
 func _start_arena(spawn_position: Vector2, spawn_rotation: float) -> bool:
@@ -151,7 +161,7 @@ func _on_connected_to_server() -> void:
 		return
 	phase = ArenaPhase.NEGOTIATING
 	join_status_changed.emit("CONNECTED. NEGOTIATING SESSION...", false)
-	session_api.send_client_hello(protocol_version, Account.username)
+	session_api.send_client_hello(protocol_version)
 
 
 func _on_connection_ended(reason: String) -> void:

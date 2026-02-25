@@ -3,9 +3,10 @@ extends Node
 
 var base_url: String
 
-@onready var _auth_exchange: AuthExchangePost = %AuthExchangePost
+@onready var _auth_exchange_post: AuthExchangePost = %AuthExchangePost
 @onready var _me_get: MeGet = %MeGet
-@onready var _me_patch: MeUsernamePatch = %MeUsernamePatch
+@onready var _me_username_patch: MeUsernamePatch = %MeUsernamePatch
+@onready var _play_ticket_post: PlayTicketPost = %PlayTicketPost
 
 
 func _ready() -> void:
@@ -30,7 +31,7 @@ func _exit_tree() -> void:
 
 func exchange_auth(provider: String, proof: String) -> ApiResult:
 	_log_user_service("exchanging provider proof with user-service")
-	var exchange_result: ApiResult = await _auth_exchange.invoke(provider, proof)
+	var exchange_result: ApiResult = await _auth_exchange_post.invoke(provider, proof)
 	if not exchange_result.success:
 		return exchange_result
 
@@ -45,7 +46,12 @@ func exchange_auth(provider: String, proof: String) -> ApiResult:
 
 func update_username(username: String) -> ApiResult:
 	_log_user_service("updating username")
-	return await _me_patch.invoke(username)
+	return await _me_username_patch.invoke(username)
+
+
+func fetch_play_ticket() -> ApiResult:
+	_log_user_service("fetching play ticket")
+	return await _play_ticket_post.invoke()
 
 
 func _log_user_service(message: String) -> void:

@@ -3,7 +3,6 @@ import { Hono } from "hono";
 import type { Context } from "hono";
 import { db } from "../../db/client.js";
 import { accounts } from "../../db/schema.js";
-import { ensureStarterLoadout } from "../../loadout.js";
 import { requireBearerSession } from "../require_bearer_session.js";
 import type { BearerSessionVars } from "../require_bearer_session.js";
 import type { MeResponse } from "./types.js";
@@ -23,8 +22,7 @@ async function getMeHandler(context: Context<{ Variables: BearerSessionVars }>) 
   if (!account) {
     return context.json({ error: "PROFILE_NOT_FOUND" }, 404);
   }
-  const loadout = ensureStarterLoadout(account.loadout);
-  return context.json<MeResponse>({ ...account, loadout });
+  return context.json<MeResponse>(account);
 }
 
 export const route = new Hono<{ Variables: BearerSessionVars }>()

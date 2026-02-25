@@ -1,7 +1,7 @@
 class_name ServerApp
 extends Node
 
-@export_range(1, 65535, 1) var listen_port: int = 7_000
+@export_range(1, 65535, 1) var listen_port: int = 47_111
 @export var max_clients: int = 32
 @export var tick_rate_hz: int = 60
 @export var arena_max_players: int = 10
@@ -64,6 +64,11 @@ func _ready() -> void:
 	print("[server] physics tick loop configured at %d Hz" % Engine.physics_ticks_per_second)
 
 
+func _reject_arena_join(peer_id: int, reason: String) -> void:
+	print("[server][join] reject_join_arena peer=%d reason=%s" % [peer_id, reason])
+	network_session.reject_arena_join(peer_id, reason)
+
+
 func _apply_cli_args() -> void:
 	var client_args: Dictionary = Env.get_parsed_cmdline_user_args()
 	listen_port = Env.get_env("port", listen_port)
@@ -73,47 +78,53 @@ func _apply_cli_args() -> void:
 	)
 
 
-func _on_arena_join_requested(
-	peer_id: int, player_name: String, requested_loadout: Dictionary
-) -> void:
+func _on_arena_join_requested(peer_id: int, ticket: String) -> void:
 	if arena_session_state.has_peer(peer_id):
 		_remove_arena_peer(peer_id, "REJOIN_REQUEST")
-	var cleaned_player_name: String = player_name.strip_edges()
-	if cleaned_player_name.is_empty():
-		print("[server][join] reject_join_arena peer=%d reason=INVALID_PLAYER_NAME" % peer_id)
-		network_session.reject_arena_join(peer_id, "INVALID PLAYER NAME")
+	if ticket.strip_edges().is_empty():
+		_reject_arena_join(peer_id, "INVALID TICKET")
+		return
+	var claims: Dictionary = PlayTicketVerifier.verify_and_extract(
+		ticket, AppConfig.ticket_verification_public_key
+	)
+	if claims.is_empty():
+		_reject_arena_join(peer_id, "TICKET VERIFICATION FAILED")
+		return
+	var player_name: String = str(claims.get("username", ""))
+	if player_name.is_empty():
+		_reject_arena_join(peer_id, "INVALID PLAYER NAME")
 		return
 	var join_result: Dictionary = arena_session_state.try_join_peer(
-		peer_id, cleaned_player_name, requested_loadout
+		peer_id, player_name, claims.get("loadout", {})
 	)
-	var join_message: String = str(join_result.get("message", "JOIN FAILED"))
 	if not join_result.get("success", false):
-		print("[server][join] reject_join_arena peer=%d reason=%s" % [peer_id, join_message])
-		network_session.reject_arena_join(peer_id, join_message)
+		_reject_arena_join(peer_id, str(join_result.get("message", "JOIN FAILED")))
 		return
 	var tank_spec: TankSpec = join_result.get("tank_spec", null)
-	if tank_spec == null:
-		network_session.reject_arena_join(peer_id, "INVALID TANK")
-		return
-	var join_spawn_result: Dictionary = server_arena_runtime.spawn_peer_tank_at_random(
-		peer_id, cleaned_player_name, tank_spec
+	var spawn_result: Dictionary = server_arena_runtime.spawn_peer_tank_at_random(
+		peer_id, player_name, tank_spec
 	)
-	if not join_spawn_result.get("success", false):
+	if not spawn_result.get("success", false):
 		arena_session_state.remove_peer(peer_id, "NO_SPAWN_AVAILABLE")
-		network_session.reject_arena_join(peer_id, "NO SPAWN AVAILABLE")
+		_reject_arena_join(peer_id, "NO SPAWN AVAILABLE")
 		return
-	var spawn_id: StringName = join_spawn_result.get("spawn_id", StringName())
-	var spawn_transform: Transform2D = join_spawn_result.get(
-		"spawn_transform", Transform2D.IDENTITY
-	)
+	var spawn_transform: Transform2D = spawn_result.get("spawn_transform", Transform2D.IDENTITY)
 	arena_session_state.set_peer_authoritative_state(
 		peer_id, spawn_transform.origin, spawn_transform.get_rotation(), Vector2.ZERO
 	)
 	network_session.complete_arena_join(
-		peer_id, join_message, spawn_transform.origin, spawn_transform.get_rotation()
+		peer_id,
+		str(join_result.get("message", "JOINED")),
+		spawn_transform.origin,
+		spawn_transform.get_rotation()
 	)
 	network_gameplay.broadcast_state_snapshot_now()
-	print("[server][arena] player_joined peer=%d spawn_id=%s" % [peer_id, spawn_id])
+	print(
+		(
+			"[server][arena] player_joined peer=%d spawn_id=%s"
+			% [peer_id, spawn_result.get("spawn_id", "")]
+		)
+	)
 
 
 func _on_arena_leave_requested(peer_id: int) -> void:

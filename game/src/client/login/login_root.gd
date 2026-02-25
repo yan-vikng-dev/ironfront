@@ -30,9 +30,7 @@ func _on_panel_quit_pressed() -> void:
 
 
 func _on_panel_username_submitted(username: String) -> void:
-	var update_result: UserServiceClient.ApiResult = await (
-		AuthManager.user_service_client.update_username(username)
-	)
+	var update_result: ApiResult = await (AuthManager.user_service_client.update_username(username))
 	if not is_inside_tree():
 		return
 	if update_result.success:

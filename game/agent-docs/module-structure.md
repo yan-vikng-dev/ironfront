@@ -16,7 +16,8 @@ __note: all paths in doc are relative to module root__
 - `src/ui/` contains UI scenes, widgets, overlays, and HUD elements.
 - `src/global_assets/` contains shared art, audio, and UI resources.
 - `src/game_data/` contains data resources and configuration assets.
-- `src/config/` and `src/singletons/` contain config and autoload scripts.
+- `src/config/` and `src/autoloads/` contain config and autoload scripts.
+- `src/api/` contains HTTP API clients. See `agent-docs/code-patterns.md` section 15 for the router + handler convention.
 
 ## Runtime Architecture
 - `src/core/main.gd` selects runtime mode (client vs dedicated server).

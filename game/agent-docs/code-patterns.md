@@ -24,6 +24,11 @@ Bad:
 var network_server: Node = get_node("/root/Main/Runtime/Network")
 ```
 
+## 2a) Autoloads and Dependencies
+- Prefer script autoloads. Add child nodes (e.g. API clients) in `_ready()` via `instance()` and `add_child()` rather than embedding them in a parent scene.
+- Godot forbids `class_name X` when an autoload is named `X`. Use a non-conflicting `class_name` (e.g. `AuthManagerNode`) for type inference.
+- Code accesses the singleton by autoload name (e.g. `AuthManager`).
+
 ## 3) Type Everything You Can
 - Prefer typed fields, typed arrays, and typed dictionaries.
 - Avoid `Object` unless absolutely necessary.
@@ -172,11 +177,38 @@ account.set_selected_tank_spec(item.tank_spec)
 Utils.connect_checked(account.selected_tank_spec_updated, _update_item_states)
 ```
 
-## 15) Avoid Overdefensive API Methods
+## 15) API Client Router and Handler Convention
+- API clients use a router + handler pattern mirroring the user-service server routes.
+- The router is a scene (for example `user_service_client.tscn`) with handler nodes as children. Handlers use `unique_name_in_owner = true` and are referenced via `%UniqueName` or `@onready` vars. The router owns `base_url` (from AppConfig in `_ready`) and `_cancel_all_requests`.
+- Routes are fully defined by folders. Each leaf route folder contains `VERB.gd` (handler) and `types.gd` (DTOs, parsers). Example: `api/me/username/[PATCH.gd, types.gd]`. Handler class names follow `FullRouteVerb`: `AuthExchangePost`, `MeGet`, `MeUsernamePatch`.
+- Handlers expose `func invoke(...args) -> ApiResult` (instance method). They call `ApiRequest.request_json(...)` for HTTP; the static transport lives in `api/request.gd`.
+- Shared types (`ApiResult`) and transport (`ApiRequest.request_json` in `api/request.gd`) stay at `api/` root.
+- Multi-step flows (for example exchange then fetch profile) are orchestrated in the router, not inside a single handler.
+
+Good (`src/api/` structure):
+```
+api/
+├── user_service_client.tscn    # Router scene with handlers as unique-name children
+├── user_service_client.gd
+├── api_result.gd               # Shared result type
+├── request.gd                  # ApiRequest.request_json (static transport)
+├── auth/
+│   └── exchange/
+│       ├── POST.gd             # POST /auth/exchange
+│       └── types.gd            # UserServiceExchangeResponseBody
+└── me/
+    ├── GET.gd                  # GET /me
+    ├── types.gd                # MeGetResponse
+    └── username/
+        ├── PATCH.gd            # PATCH /me/username
+        └── types.gd            # MeUsernamePatchResponse
+```
+
+## 16) Avoid Overdefensive API Methods
 - Avoid deeply nested and overdefensive single-method flows for straightforward HTTP operations.
 - Prefer direct, linear control flow with a clear success/failure boundary.
 
-Good (current `src/api/user_service/user_service_client.gd` pattern):
+Good (ApiResult + linear flow; handlers in `src/api/` follow this style):
 ```gdscript
 class ApiResult:
 	extends RefCounted
@@ -247,7 +279,7 @@ func _request_json(
 	return ApiResult.ok(parsed)
 ```
 
-Bad (from `src/api/user_service/user_service_client.gd:update_username`):
+Bad (deeply nested alternative; avoid this):
 ```gdscript
 func update_username(username: String) -> Dictionary[String, Variant]:
 	var result: Dictionary[String, Variant] = {"success": false, "reason": "", "data": {}}

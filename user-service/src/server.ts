@@ -1,8 +1,9 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
+import { route as authExchangeRoute } from "./api/auth/exchange/POST.js";
+import { route as meGetRoute } from "./api/me/GET.js";
+import { route as meUsernamePatchRoute } from "./api/me/username/PATCH.js";
 import { config } from "./config.js";
-import { authRouter } from "./routes/auth/route.js";
-import { meRouter } from "./routes/me/route.js";
 
 const app = new Hono();
 
@@ -10,8 +11,9 @@ app.get("/healthz", (context) => {
   return context.json({ ok: true, stage: config.stage });
 });
 
-app.route("/auth", authRouter);
-app.route("/me", meRouter);
+app.route("/auth/exchange", authExchangeRoute);
+app.route("/me", meGetRoute);
+app.route("/me/username", meUsernamePatchRoute);
 
 app.onError((error, context) => {
   console.error("[http] unhandled error", error);

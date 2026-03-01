@@ -43,7 +43,9 @@ func _refresh_from_account() -> void:
 		next_shell_counts[shell_spec] = shell_count
 	shell_counts = next_shell_counts
 	_clear_shell_list()
-	for shell_spec: ShellSpec in shell_counts.keys():
+	for shell_spec: ShellSpec in tank_spec.allowed_shells:
+		if not shell_counts.has(shell_spec):
+			continue
 		var shell_list_item: ShellListItem = shell_list_item_scene.instantiate()
 		shell_list.add_child(shell_list_item)
 		shell_list_item.display_shell(shell_spec)
@@ -87,8 +89,8 @@ func _on_shell_expand_requested() -> void:
 
 
 func _select_first_valid_shell() -> void:
-	for shell_spec: ShellSpec in shell_counts.keys():
-		if shell_counts[shell_spec] > 0:
+	for shell_spec: ShellSpec in tank_spec.allowed_shells:
+		if shell_counts.get(shell_spec, 0) > 0:
 			_on_shell_selected(shell_spec)
 			return
 

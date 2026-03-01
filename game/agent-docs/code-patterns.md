@@ -184,6 +184,8 @@ Utils.connect_checked(account.selected_tank_spec_updated, _update_item_states)
 - Handlers expose `func invoke(...args) -> ApiResult` (instance method). They call `ApiRequest.request_json(...)` for HTTP; the static transport lives in `api/request.gd`.
 - Shared types (`ApiResult`) and transport (`ApiRequest.request_json` in `api/request.gd`) stay at `api/` root.
 - Multi-step flows (for example exchange then fetch profile) are orchestrated in the router, not inside a single handler.
+- Response DTOs use `*Response` suffix (for example `AuthExchangeResponse`, `MeUsernamePatchResponse`). API contract types use `*Payload` (for example `LoadoutPayload` for serialize/deserialize).
+- Response parsers: `static func parse(body: Dictionary) -> T`. Use `null` on validation failure when the response is invalid; return a typed object on success.
 
 Good (`src/api/` structure):
 ```
@@ -195,13 +197,27 @@ api/
 ├── auth/
 │   └── exchange/
 │       ├── POST.gd             # POST /auth/exchange
-│       └── types.gd            # UserServiceExchangeResponseBody
-└── me/
-    ├── GET.gd                  # GET /me
-    ├── types.gd                # MeGetResponse
-    └── username/
-        ├── PATCH.gd            # PATCH /me/username
-        └── types.gd            # MeUsernamePatchResponse
+│       ├── types.gd            # AuthExchangeResponse
+│       └── exchange_auth_result.gd  # Router-level composite (exchange + me)
+├── me/
+│   ├── GET.gd                  # GET /me
+│   ├── types.gd                # MeGetResponse
+│   ├── username/
+│   │   ├── PATCH.gd            # PATCH /me/username
+│   │   └── types.gd            # MeUsernamePatchResponse
+│   ├── loadout/
+│   │   ├── PATCH.gd            # PATCH /me/loadout
+│   │   └── types.gd            # LoadoutPayload (parse + from_account_loadout)
+│   ├── unlock_tank/
+│   │   ├── POST.gd             # POST /me/unlock-tank
+│   │   └── types.gd            # UnlockTankResponse
+│   └── unlock_shell/
+│       ├── POST.gd             # POST /me/unlock-shell
+│       └── types.gd            # UnlockShellResponse
+└── play/
+    └── ticket/
+        ├── POST.gd             # POST /play/ticket
+        └── types.gd            # PlayTicketResponse
 ```
 
 ## 16) Avoid Overdefensive API Methods

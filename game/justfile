@@ -8,9 +8,18 @@ godot_bin := "${GODOT_BIN:-/Applications/Godot.app/Contents/MacOS/Godot}"
 gdlint_bin := "${GDLINT_BIN:-/Users/yan/Library/Python/3.12/bin/gdlint}"
 gdformat_bin := "${GDFORMAT_BIN:-/Users/yan/Library/Python/3.12/bin/gdformat}"
 
-# Dry run to compile the project
-build:
+# Dry run to compile the project (no catalog export)
+build-dry:
 	{{godot_bin}} --headless --verbose --path . --quit
+
+# Dry run + catalog export
+build: build-dry
+	{{godot_bin}} --headless --path . --scene res://tools/export_catalog.tscn -- dist/catalog
+
+# Export catalog JSON from TankManager/ShellManager to dist/catalog/catalog.json
+export-catalog:
+	mkdir -p dist/catalog
+	{{godot_bin}} --headless --path . --scene res://tools/export_catalog.tscn -- dist/catalog
 
 # Refresh Godot editor-side script class/cache metadata.
 refresh-cache:
@@ -32,8 +41,8 @@ fmt-check:
 fmt:
 	{{gdformat_bin}} .
 
-# Refresh cache, then run build, formatter, and lint.
-fix: refresh-cache build fmt lint
+# Refresh cache, then run build-dry, formatter, and lint.
+fix: refresh-cache build-dry fmt lint
 
 
 apk-install:

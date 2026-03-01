@@ -1,6 +1,7 @@
 class_name AmmoUpgradeList
 extends VBoxContainer
 
+signal loadout_changed
 signal shell_unlock_requested(shell_spec: ShellSpec)
 
 var max_allowed_count: int
@@ -32,6 +33,7 @@ func display_tank_loadout(tank_spec: TankSpec, tank_config: TankConfig) -> void:
 
 
 func _on_count_updated() -> void:
+	loadout_changed.emit()
 	var tank_config: TankConfig = Account.loadout.get_selected_tank_config()
 	var current_total_count: int = 0
 	for shell_count_variant: Variant in tank_config.shell_loadout_by_spec.values():

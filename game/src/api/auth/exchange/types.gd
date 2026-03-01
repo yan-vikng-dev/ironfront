@@ -1,4 +1,4 @@
-class_name UserServiceExchangeResponseBody
+class_name AuthExchangeResponse
 extends RefCounted
 
 var account_id: String
@@ -12,7 +12,7 @@ func _init(next_account_id: String, next_session_token: String, next_expires_at_
 	expires_at_unix = next_expires_at_unix
 
 
-static func parse(body: Dictionary) -> UserServiceExchangeResponseBody:
+static func parse(body: Dictionary) -> AuthExchangeResponse:
 	var account_id: String = str(body.get("account_id", "")).strip_edges()
 	var session_token: String = str(body.get("session_token", "")).strip_edges()
 	var expires_at_unix: int = int(body.get("expires_at_unix", 0))
@@ -22,4 +22,4 @@ static func parse(body: Dictionary) -> UserServiceExchangeResponseBody:
 		return null
 	if expires_at_unix <= 0:
 		return null
-	return UserServiceExchangeResponseBody.new(account_id, session_token, expires_at_unix)
+	return AuthExchangeResponse.new(account_id, session_token, expires_at_unix)

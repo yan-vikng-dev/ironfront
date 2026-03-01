@@ -26,7 +26,7 @@ var state: State:
 				_set_lock_overlay_visibility(false)
 				_set_unlockable_overlay_visibility(true)
 				_set_price_label_properties(true, "GoldLabel")
-				_set_shell_button_properties(false, Control.MOUSE_FILTER_STOP)
+				_apply_shell_button_for_unlockable()
 			State.UNLOCKED:
 				_set_lock_overlay_visibility(false)
 				_set_unlockable_overlay_visibility(false)
@@ -36,6 +36,7 @@ var state: State:
 	get:
 		return _state
 var _state: State = State.LOCKED
+var _unlock_busy: bool = false
 
 @onready var shell_button: Button = %ShellButton
 @onready var shell_icon: TextureRect = %ShellIcon
@@ -89,6 +90,12 @@ func _ready() -> void:
 	Utils.connect_checked(
 		Account.economy.dollars_updated, func(_new_dollars: int) -> void: _refresh_locked_state()
 	)
+	Utils.connect_checked(
+		UiBus.unlock_busy_changed,
+		func(busy: bool) -> void:
+			_unlock_busy = busy
+			_apply_shell_button_for_unlockable()
+	)
 	Utils.connect_checked(shell_button.pressed, func() -> void: _on_shell_button_pressed())
 	Utils.connect_checked(
 		count_decrement_button.pressed, func() -> void: update_count(current_count - 1)
@@ -110,6 +117,11 @@ func _ready() -> void:
 func _set_shell_button_properties(disabled: bool, mouse_filter_value: Control.MouseFilter) -> void:
 	shell_button.disabled = disabled
 	shell_button.mouse_filter = mouse_filter_value
+
+
+func _apply_shell_button_for_unlockable() -> void:
+	if _state == State.UNLOCKABLE:
+		_set_shell_button_properties(_unlock_busy, Control.MOUSE_FILTER_STOP)
 
 
 func _set_price_label_properties(show_price_label: bool, theme_type_variation_name: String) -> void:

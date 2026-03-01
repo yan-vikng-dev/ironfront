@@ -56,6 +56,11 @@ func set_button_properties(disabled: bool, toggle_mode: bool, button_pressed: bo
 	_button.button_pressed = button_pressed
 
 
+func set_unlock_disabled(disabled: bool) -> void:
+	if _state == State.UNLOCKABLE:
+		set_button_properties(disabled, false, false)
+
+
 func set_price_label_properties(show_price_label: bool, _theme_type_variation: String) -> void:
 	_price_label.visible = show_price_label
 	_price_label.theme_type_variation = _theme_type_variation

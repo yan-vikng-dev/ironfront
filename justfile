@@ -4,7 +4,12 @@ mod user-service
 mod matchmaker
 mod fleet
 
-[default, parallel]
+[default]
+build: game::build
+	mkdir -p user-service/catalog
+	cp game/dist/catalog/catalog.json user-service/catalog/catalog.json
+
+[parallel]
 fix: game::fix infra::fix user-service::fix matchmaker::fix fleet::fix
 
 gcloud:

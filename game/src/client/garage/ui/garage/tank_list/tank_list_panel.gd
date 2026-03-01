@@ -4,6 +4,7 @@ extends Control
 signal unlock_tank_requested(tank_spec: TankSpec)
 
 var _unlocked_tank_specs: Array[TankSpec] = []
+var _unlock_busy: bool = false
 
 @onready var tank_list: HBoxContainer = %TankList
 @onready var _tank_list_item_scene: PackedScene = preload(
@@ -22,6 +23,12 @@ func _ready() -> void:
 	)
 	Utils.connect_checked(
 		Account.economy.dollars_updated, func(_new_dollars: int) -> void: _update_item_states()
+	)
+	Utils.connect_checked(
+		UiBus.unlock_busy_changed,
+		func(busy: bool) -> void:
+			_unlock_busy = busy
+			_update_item_states()
 	)
 	for child in tank_list.get_children():
 		child.queue_free()
@@ -66,6 +73,7 @@ func _update_item_states() -> void:
 		else:
 			if player_dollars >= item.tank_price:
 				item.state = item.State.UNLOCKABLE
+				item.set_unlock_disabled(_unlock_busy)
 			else:
 				item.state = item.State.LOCKED
 

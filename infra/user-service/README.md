@@ -11,26 +11,17 @@ Env: `infra/.env.prod` for prod (db-migrate); `infra/.env.dev` for local dev (ju
 ## Config
 - `gcp:project`
 - `gcp:region`
-- `user-service-infra:artifactRepoId`
 - `user-service-infra:imageTag`
-- `user-service-infra:serviceName`
-- `user-service-infra:stage`
-- `user-service-infra:sessionTtlSeconds`
-- `user-service-infra:allowUnauthenticated`
+- `user-service-infra:stage` (serviceName derived as `user-service-${stage}`)
 - `user-service-infra:enableCustomDomain`
 - `user-service-infra:customDomain`
 - `user-service-infra:minInstanceCount`
 - `user-service-infra:maxInstanceCount`
 - `user-service-infra:dbInstanceName`
-- `user-service-infra:dbName`
-- `user-service-infra:dbUserName`
 - `user-service-infra:dbUserPassword` (set via `pulumi config set --secret`)
-- `user-service-infra:dbTier`
-- `user-service-infra:dbEdition`
 - `user-service-infra:dbDeletionProtection`
+- `user-service-infra:cloudRunDeletionProtection`
 - `user-service-infra:dbSecretName`
-- `user-service-infra:dbVersion`
-- `user-service-infra:pgsWebClientId`
 - `user-service-infra:pgsWebClientSecretName`
 - `user-service-infra:pgsWebClientSecret` (set via `pulumi config set --secret`)
 - `user-service-infra:ticketSigningSecretName`

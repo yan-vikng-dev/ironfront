@@ -5,27 +5,23 @@ type CloudRunArgs = {
   region: string;
   serviceName: string;
   deletionProtection: boolean;
-  artifactRepoId: string;
   imageTag: string;
   stage: string;
-  sessionTtlSeconds: number;
   minInstanceCount: number;
   maxInstanceCount: number;
-  allowUnauthenticated: boolean;
   serviceAccountEmail: gcp.serviceaccount.Account["email"];
   databaseConnectionName: gcp.sql.DatabaseInstance["connectionName"];
   databaseUrlSecretId: gcp.secretmanager.Secret["secretId"];
-  pgsWebClientId: string;
   pgsWebClientSecretId: gcp.secretmanager.Secret["secretId"];
   ticketSigningPrivateKeyId: gcp.secretmanager.Secret["secretId"];
   dependsOn: gcp.secretmanager.SecretVersion[];
 };
 
 export function createCloudRunService(args: CloudRunArgs) {
-  const image = `${args.region}-docker.pkg.dev/${args.project}/${args.artifactRepoId}/user-service:${args.imageTag}`;
+  const image = `${args.region}-docker.pkg.dev/${args.project}/ironfront/user-service:${args.imageTag}`;
   const envs: gcp.types.input.cloudrunv2.ServiceTemplateContainerEnv[] = [
     { name: "STAGE", value: args.stage },
-    { name: "SESSION_TTL_SECONDS", value: String(args.sessionTtlSeconds) },
+    { name: "SESSION_TTL_SECONDS", value: "86400" },
     {
       name: "DATABASE_URL",
       valueSource: {
@@ -36,7 +32,10 @@ export function createCloudRunService(args: CloudRunArgs) {
       }
     }
   ];
-  envs.push({ name: "PGS_WEB_CLIENT_ID", value: args.pgsWebClientId });
+  envs.push({
+    name: "PGS_WEB_CLIENT_ID",
+    value: "556532261549-5sfh8fmkgs232240dviunjr3e4kqeh8a.apps.googleusercontent.com"
+  });
   envs.push({
     name: "PGS_WEB_CLIENT_SECRET",
     valueSource: {
@@ -96,15 +95,13 @@ export function createCloudRunService(args: CloudRunArgs) {
     { dependsOn: args.dependsOn }
   );
 
-  if (args.allowUnauthenticated) {
-    new gcp.cloudrunv2.ServiceIamMember("public-invoker", {
-      name: service.name,
-      location: args.region,
-      project: args.project,
-      role: "roles/run.invoker",
-      member: "allUsers"
-    });
-  }
+  new gcp.cloudrunv2.ServiceIamMember("public-invoker", {
+    name: service.name,
+    location: args.region,
+    project: args.project,
+    role: "roles/run.invoker",
+    member: "allUsers"
+  });
 
   return { service, image };
 }

@@ -6,20 +6,12 @@ import { createDatabaseResources } from "./database.ts";
 import { createRuntimeIdentity, grantRuntimeIam } from "./runtime_identity.ts";
 import { enableProjectServices } from "./services.ts";
 import {
-  allowUnauthenticated,
-  artifactRepoId,
   cloudRunDeletionProtection,
   customDomain,
   dbDeletionProtection,
-  dbEdition,
   dbInstanceName,
-  dbName,
   dbSecretName,
-  dbTier,
-  dbUserName,
   dbUserPassword,
-  dbVersion,
-  pgsWebClientId,
   pgsWebClientSecret,
   pgsWebClientSecretName,
   ticketSigningPrivateKey,
@@ -31,7 +23,6 @@ import {
   project,
   region,
   serviceName,
-  sessionTtlSeconds,
   stage
 } from "./stack_config.ts";
 
@@ -50,14 +41,9 @@ const { databaseInstance, databaseUrlSecret, databaseUrlSecretVersion } = create
   region,
   serviceName,
   dbInstanceName,
-  dbName,
-  dbUserName,
   dbUserPassword,
-  dbTier,
-  dbEdition,
   dbDeletionProtection,
   dbSecretName,
-  dbVersion,
   dependsOn: enabledServices
 });
 
@@ -100,17 +86,13 @@ const { service, image } = createCloudRunService({
   region,
   serviceName,
   deletionProtection: cloudRunDeletionProtection,
-  artifactRepoId,
   imageTag,
   stage,
-  sessionTtlSeconds,
   minInstanceCount,
   maxInstanceCount,
-  allowUnauthenticated,
   serviceAccountEmail: runServiceAccount.email,
   databaseConnectionName: databaseInstance.connectionName,
   databaseUrlSecretId: databaseUrlSecret.secretId,
-  pgsWebClientId,
   pgsWebClientSecretId: pgsSecret.secretId,
   ticketSigningPrivateKeyId: ticketSigningSecret.secretId,
   dependsOn: [

@@ -6,14 +6,9 @@ type DatabaseArgs = {
   region: string;
   serviceName: string;
   dbInstanceName: string;
-  dbName: string;
-  dbUserName: string;
   dbUserPassword: pulumi.Input<string>;
-  dbTier: string;
-  dbEdition: string;
   dbDeletionProtection: boolean;
   dbSecretName: string;
-  dbVersion: string;
   dependsOn: gcp.projects.Service[];
 };
 
@@ -24,11 +19,11 @@ export function createDatabaseResources(args: DatabaseArgs) {
       project: args.project,
       region: args.region,
       name: args.dbInstanceName,
-      databaseVersion: args.dbVersion,
+      databaseVersion: "POSTGRES_18",
       deletionProtection: args.dbDeletionProtection,
       settings: {
-        edition: args.dbEdition,
-        tier: args.dbTier,
+        edition: "ENTERPRISE",
+        tier: "db-custom-1-3840",
         availabilityType: "ZONAL",
         diskType: "PD_SSD",
         diskSize: 20,
@@ -41,18 +36,18 @@ export function createDatabaseResources(args: DatabaseArgs) {
     { dependsOn: args.dependsOn }
   );
 
-  new gcp.sql.Database(`${args.dbInstanceName}-${args.dbName}`, {
-    project: args.project,
-    name: args.dbName,
-    instance: databaseInstance.name
-  });
-
-  new gcp.sql.User(`${args.dbInstanceName}-${args.dbUserName}`, {
+  const dbUser = new gcp.sql.User(`${args.dbInstanceName}-user_service_app`, {
     project: args.project,
     instance: databaseInstance.name,
-    name: args.dbUserName,
+    name: "user_service_app",
     password: args.dbUserPassword
   });
+
+  new gcp.sql.Database(`${args.dbInstanceName}-user_service`, {
+    project: args.project,
+    name: "user_service",
+    instance: databaseInstance.name
+  }, { dependsOn: [dbUser] });
 
   const databaseUrlSecret = new gcp.secretmanager.Secret(
     args.dbSecretName,
@@ -70,7 +65,7 @@ export function createDatabaseResources(args: DatabaseArgs) {
     .all([databaseInstance.connectionName, args.dbUserPassword])
     .apply(([connectionName, password]) => {
       const encodedPassword = encodeURIComponent(password);
-      return `postgresql://${args.dbUserName}:${encodedPassword}@/${args.dbName}?host=/cloudsql/${connectionName}`;
+      return `postgresql://user_service_app:${encodedPassword}@/user_service?host=/cloudsql/${connectionName}`;
     });
 
   const databaseUrlSecretVersion = new gcp.secretmanager.SecretVersion(

@@ -1,5 +1,6 @@
 set shell := ["bash", "-euo", "pipefail", "-c"]
 
+env_dir := justfile_directory()
 gcp_project := env_var_or_default("GCP_PROJECT", "ironfront-game")
 gcp_region := env_var_or_default("GCP_REGION", "europe-west1")
 artifact_repo := env_var_or_default("ARTIFACT_REPO", "ironfront")
@@ -8,12 +9,11 @@ image_name := env_var_or_default("IMAGE_NAME", "user-service")
 fix:
 	pnpm run fix
 
-dev:
-	just dev-db
-	set -a; source ../infra/.env.dev 2>/dev/null || true; set +a; pnpm run dev
+dev: dev-db
+	set -a; source "{{env_dir}}/.env.dev" 2>/dev/null || true; set +a; pnpm run dev
 
 dev-db:
-	docker start ironfront-user-service-pg || docker run --name ironfront-user-service-pg -e POSTGRES_USER=user -e POSTGRES_PASSWORD=pass -e POSTGRES_DB=user_service -p 5432:5432 postgres:16
+	docker start ironfront-user-service-pg || docker run --name ironfront-user-service-pg -e POSTGRES_USER=user -e POSTGRES_PASSWORD=pass -e POSTGRES_DB=user_service -p 5432:5432 postgres:17
 
 push-image tag=(`git rev-parse --short HEAD` + "-" + `date +%Y%m%d%H%M%S`):
 	TAG="{{tag}}"; \
@@ -29,44 +29,21 @@ migrate target:
 studio target:
 	just _studio-{{target}}
 
-_migrate-prod:
-	command -v cloud-sql-proxy >/dev/null || { echo "cloud-sql-proxy is required"; exit 1; }; \
-	eval "$(pnpm -s tsx src/scripts/resolve_stack_env.ts prod)"; \
-	INSTANCE_CONN="${STACK_GCP_PROJECT}:${STACK_GCP_REGION}:${STACK_DB_INSTANCE}"; \
-	echo "Starting cloud-sql-proxy for $INSTANCE_CONN"; \
-	cloud-sql-proxy --address 127.0.0.1 --port 5432 "$INSTANCE_CONN" >/tmp/cloud-sql-proxy.log 2>&1 & \
-	PROXY_PID=$!; \
-	cleanup() { kill "$PROXY_PID" >/dev/null 2>&1 || true; }; \
-	trap cleanup EXIT; \
-	for i in $(seq 1 20); do \
-		if nc -z 127.0.0.1 5432 >/dev/null 2>&1; then break; fi; \
-		sleep 0.5; \
-	done; \
-	DATABASE_URL="postgresql://${STACK_DB_USER}:${STACK_DB_PASSWORD_ENCODED}@127.0.0.1:5432/${STACK_DB_NAME}" pnpm run db:push; \
-	echo "$STACK_STAGE DB push completed"
+[private]
+_with-dev-env cmd:
+	set -a; source "{{env_dir}}/.env.dev" 2>/dev/null || true; set +a; {{cmd}}
 
-_migrate-dev:
-	just dev-db
-	set -a; source ../infra/.env.dev 2>/dev/null || true; set +a; pnpm run db:push
+[private]
+_with-prod-env cmd:
+	set -a; source "{{env_dir}}/.env.prod" 2>/dev/null || true; set +a; \
+	DATABASE_URL="${DATABASE_URL:-${USER_SERVICE_DB_URL:-}}"; \
+	if [ -z "$DATABASE_URL" ]; then echo "DATABASE_URL or USER_SERVICE_DB_URL required in .env.prod"; exit 1; fi; \
+	{{cmd}}
 
-_studio-dev:
-	just dev-db
-	set -a; source ../infra/.env.dev 2>/dev/null || true; set +a; pnpm run db:studio
-
-_studio-prod:
-	command -v cloud-sql-proxy >/dev/null || { echo "cloud-sql-proxy is required"; exit 1; }; \
-	eval "$(pnpm -s tsx src/scripts/resolve_stack_env.ts prod)"; \
-	INSTANCE_CONN="${STACK_GCP_PROJECT}:${STACK_GCP_REGION}:${STACK_DB_INSTANCE}"; \
-	echo "Starting cloud-sql-proxy for $INSTANCE_CONN"; \
-	cloud-sql-proxy --address 127.0.0.1 --port 5432 "$INSTANCE_CONN" >/tmp/cloud-sql-proxy.log 2>&1 & \
-	PROXY_PID=$!; \
-	cleanup() { kill "$PROXY_PID" >/dev/null 2>&1 || true; }; \
-	trap cleanup EXIT; \
-	for i in $(seq 1 20); do \
-		if nc -z 127.0.0.1 5432 >/dev/null 2>&1; then break; fi; \
-		sleep 0.5; \
-	done; \
-	DATABASE_URL="postgresql://${STACK_DB_USER}:${STACK_DB_PASSWORD_ENCODED}@127.0.0.1:5432/${STACK_DB_NAME}" pnpm run db:studio
+_migrate-dev: dev-db (_with-dev-env "pnpm run db:push")
+_studio-dev: dev-db (_with-dev-env "pnpm run db:studio")
+_migrate-prod: (_with-prod-env "pnpm run db:push && echo 'prod DB push completed'")
+_studio-prod: (_with-prod-env "pnpm run db:studio")
 
 deploy:
 	TAG="$(git rev-parse --short HEAD)-$(date +%Y%m%d%H%M%S)"; \

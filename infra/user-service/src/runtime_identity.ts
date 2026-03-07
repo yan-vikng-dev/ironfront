@@ -22,12 +22,6 @@ export function createRuntimeIdentity(args: RuntimeIdentityArgs) {
 }
 
 export function grantRuntimeIam(project: string, serviceName: string, serviceAccountEmail: pulumi.Input<string>) {
-  new gcp.projects.IAMMember(`${serviceName}-cloudsql-client`, {
-    project,
-    role: "roles/cloudsql.client",
-    member: pulumi.interpolate`serviceAccount:${serviceAccountEmail}`
-  });
-
   new gcp.projects.IAMMember(`${serviceName}-secret-accessor`, {
     project,
     role: "roles/secretmanager.secretAccessor",

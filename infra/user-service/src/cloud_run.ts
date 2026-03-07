@@ -10,7 +10,6 @@ type CloudRunArgs = {
   minInstanceCount: number;
   maxInstanceCount: number;
   serviceAccountEmail: gcp.serviceaccount.Account["email"];
-  databaseConnectionName: gcp.sql.DatabaseInstance["connectionName"];
   databaseUrlSecretId: gcp.secretmanager.Secret["secretId"];
   pgsWebClientSecretId: gcp.secretmanager.Secret["secretId"];
   ticketSigningPrivateKeyId: gcp.secretmanager.Secret["secretId"];
@@ -73,21 +72,7 @@ export function createCloudRunService(args: CloudRunArgs) {
           {
             image,
             ports: { containerPort: 8080 },
-            envs,
-            volumeMounts: [
-              {
-                name: "cloudsql",
-                mountPath: "/cloudsql"
-              }
-            ]
-          }
-        ],
-        volumes: [
-          {
-            name: "cloudsql",
-            cloudSqlInstance: {
-              instances: [args.databaseConnectionName]
-            }
+            envs
           }
         ]
       }

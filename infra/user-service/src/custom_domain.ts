@@ -35,6 +35,11 @@ export function createCustomDomainLoadBalancer(args: CustomDomainArgs): pulumi.O
     defaultService: backendService.id
   });
 
+  const globalAddress = new gcp.compute.GlobalAddress(`${args.serviceName}-ip`, {
+    project: args.project,
+    ipVersion: "IPV4"
+  });
+
   const managedCert = new gcp.compute.ManagedSslCertificate(`${args.serviceName}-cert`, {
     project: args.project,
     managed: {
@@ -46,11 +51,6 @@ export function createCustomDomainLoadBalancer(args: CustomDomainArgs): pulumi.O
     project: args.project,
     urlMap: urlMap.id,
     sslCertificates: [managedCert.id]
-  });
-
-  const globalAddress = new gcp.compute.GlobalAddress(`${args.serviceName}-ip`, {
-    project: args.project,
-    ipVersion: "IPV4"
   });
 
   new gcp.compute.GlobalForwardingRule(`${args.serviceName}-https-fwd`, {

@@ -11,7 +11,7 @@ import { config } from "./config.js";
 
 const app = new Hono();
 
-app.get("/healthz", (context) => {
+app.get("/health", (context) => {
   return context.json({ ok: true, stage: config.stage });
 });
 

@@ -2,16 +2,13 @@ import * as pulumi from "@pulumi/pulumi";
 import * as gcp from "@pulumi/gcp";
 import { createCloudRunService } from "./cloud_run.ts";
 import { createCustomDomainLoadBalancer } from "./custom_domain.ts";
-import { createDatabaseResources } from "./database.ts";
 import { createRuntimeIdentity, grantRuntimeIam } from "./runtime_identity.ts";
 import { enableProjectServices } from "./services.ts";
 import {
   cloudRunDeletionProtection,
   customDomain,
-  dbDeletionProtection,
-  dbInstanceName,
+  databaseUrl,
   dbSecretName,
-  dbUserPassword,
   pgsWebClientSecret,
   pgsWebClientSecretName,
   ticketSigningPrivateKey,
@@ -36,16 +33,23 @@ const { runServiceAccount } = createRuntimeIdentity({
 
 grantRuntimeIam(project, serviceName, runServiceAccount.email);
 
-const { databaseInstance, databaseUrlSecret, databaseUrlSecretVersion } = createDatabaseResources({
-  project,
-  region,
-  serviceName,
-  dbInstanceName,
-  dbUserPassword,
-  dbDeletionProtection,
+const databaseUrlSecret = new gcp.secretmanager.Secret(
   dbSecretName,
-  dependsOn: enabledServices
-});
+  {
+    project,
+    secretId: dbSecretName,
+    replication: { auto: {} }
+  },
+  { dependsOn: enabledServices }
+);
+const databaseUrlSecretVersion = new gcp.secretmanager.SecretVersion(
+  `${dbSecretName}-current`,
+  {
+    secret: databaseUrlSecret.id,
+    secretData: databaseUrl
+  },
+  { dependsOn: [databaseUrlSecret] }
+);
 
 const pgsSecret = new gcp.secretmanager.Secret(
   pgsWebClientSecretName,
@@ -91,7 +95,6 @@ const { service, image } = createCloudRunService({
   minInstanceCount,
   maxInstanceCount,
   serviceAccountEmail: runServiceAccount.email,
-  databaseConnectionName: databaseInstance.connectionName,
   databaseUrlSecretId: databaseUrlSecret.secretId,
   pgsWebClientSecretId: pgsSecret.secretId,
   ticketSigningPrivateKeyId: ticketSigningSecret.secretId,
@@ -117,7 +120,6 @@ export const serviceUrl = service.uri;
 export const serviceAccountEmail = runServiceAccount.email;
 export const deployedImage = image;
 export const customDomainDnsARecord = customDomainIpAddress;
-export const cloudSqlInstanceConnectionName = databaseInstance.connectionName;
 export const databaseUrlSecretId = databaseUrlSecret.secretId;
 export const pgsWebClientSecretResourceId = pgsSecret.secretId;
 export const ticketSigningPrivateKeyResourceId = ticketSigningSecret.secretId;

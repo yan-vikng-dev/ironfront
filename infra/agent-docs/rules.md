@@ -10,5 +10,5 @@
 - Use CI/CD-reachable secret stores (for example Secret Manager) for prod secrets.
 
 ## Env Files
-- `infra/.env.dev`: local development (STAGE=dev, DATABASE_URL, etc.). Used by `just user-service::dev`. Gitignored.
-- `infra/.env.prod`: production deployment (USER_SERVICE_DB_PASSWORD, PGS_WEB_CLIENT_SECRET, etc.). Used by `just user-service::db-migrate` via resolve_stack_env. Gitignored.
+- `user-service/.env.dev`: local development (committed). Used by `just user-service::dev`, `migrate dev`, `studio dev`.
+- `user-service/.env.prod`: prod DB URL for migrate/studio (gitignored). Used by `just user-service::migrate prod`, `studio prod`.

@@ -1,8 +1,8 @@
 import { and, eq, gt } from "drizzle-orm";
 import { createMiddleware } from "hono/factory";
-import { hashToken } from "@/auth/tokens.js";
-import { db } from "@/db/client.js";
-import { sessions } from "@/db/schema.js";
+import { hashToken } from "#src/auth/tokens.js";
+import { db } from "#src/db/client.js";
+import { sessions } from "#src/db/schema.js";
 
 export type BearerSessionVars = {
   accountId: string;

@@ -12,7 +12,6 @@ WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=base /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
-COPY --from=build /app/catalog ./catalog
 COPY package.json ./package.json
 EXPOSE 8080
 CMD ["node", "dist/server.js"]

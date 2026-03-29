@@ -18,11 +18,7 @@
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
     "noPropertyAccessFromIndexSignature": true,
-    "erasableSyntaxOnly": true,
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["./src/*"]
-    }
+    "erasableSyntaxOnly": true
   },
   "include": ["src/**/*.ts"]
 }

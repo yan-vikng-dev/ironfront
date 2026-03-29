@@ -1,4 +1,4 @@
-import type { AccountLoadout, accounts } from "@/db/schema.js";
+import type { AccountLoadout, accounts } from "#src/db/schema.js";
 
 export type UnlockShellResponse = {
   economy: (typeof accounts.$inferSelect)["economy"];

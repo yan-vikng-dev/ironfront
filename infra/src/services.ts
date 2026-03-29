@@ -1,4 +1,5 @@
 import * as gcp from "@pulumi/gcp";
+import * as config from "./config.ts";
 
 const requiredApis = [
   "artifactregistry.googleapis.com",
@@ -10,16 +11,15 @@ const requiredApis = [
   "secretmanager.googleapis.com",
   "servicenetworking.googleapis.com",
   "sqladmin.googleapis.com",
-  "storage.googleapis.com"
+  "storage.googleapis.com",
+  "iamcredentials.googleapis.com"
 ];
 
-export function enableRequiredApis(project: string) {
-  return requiredApis.map(
-    (api) =>
-      new gcp.projects.Service(api, {
-        project,
-        service: api,
-        disableOnDestroy: false
-      })
-  );
-}
+export const enabledApis = requiredApis.map(
+  (api) =>
+    new gcp.projects.Service(api, {
+      project: config.project,
+      service: api,
+      disableOnDestroy: false
+    })
+);

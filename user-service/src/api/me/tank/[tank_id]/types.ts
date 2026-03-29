@@ -1,4 +1,4 @@
-import type { AccountLoadout, accounts } from "@/db/schema.js";
+import type { AccountLoadout, accounts } from "#src/db/schema.js";
 
 export type UnlockTankBody = { initial_shell_id: string };
 

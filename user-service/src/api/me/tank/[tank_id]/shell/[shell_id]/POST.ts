@@ -1,12 +1,12 @@
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import type { Context } from "hono";
-import { db } from "@/db/client.js";
-import { accounts } from "@/db/schema.js";
-import type { AccountLoadout } from "@/db/schema.js";
-import { catalog } from "@/catalog.js";
-import { requireBearerSession } from "@/api/require_bearer_session.js";
-import type { BearerSessionVars } from "@/api/require_bearer_session.js";
+import { db } from "#src/db/client.js";
+import { accounts } from "#src/db/schema.js";
+import type { AccountLoadout } from "#src/db/schema.js";
+import { catalog } from "#src/catalog.js";
+import { requireBearerSession } from "#src/api/require_bearer_session.js";
+import type { BearerSessionVars } from "#src/api/require_bearer_session.js";
 import type { UnlockShellResponse } from "./types.js";
 
 async function postUnlockShellHandler(

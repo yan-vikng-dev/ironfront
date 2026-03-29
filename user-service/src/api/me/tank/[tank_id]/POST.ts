@@ -2,18 +2,17 @@ import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import type { Context } from "hono";
 import { z } from "zod";
-import { db } from "../../../db/client.js";
-import { accounts } from "../../../db/schema.js";
-import type { AccountLoadout } from "../../../db/schema.js";
-import { catalog } from "../../../catalog.js";
-import { requireBearerSession } from "../../require_bearer_session.js";
-import type { BearerSessionVars } from "../../require_bearer_session.js";
+import { db } from "@/db/client.js";
+import { accounts } from "@/db/schema.js";
+import type { AccountLoadout } from "@/db/schema.js";
+import { catalog } from "@/catalog.js";
+import { requireBearerSession } from "@/api/require_bearer_session.js";
+import type { BearerSessionVars } from "@/api/require_bearer_session.js";
 import type { UnlockTankResponse } from "./types.js";
 
 const DEFAULT_SHELL_AMMO = 70;
 
 const unlockTankBodySchema = z.object({
-  tank_id: z.string().min(1),
   initial_shell_id: z.string().min(1)
 });
 
@@ -21,11 +20,16 @@ async function postUnlockTankHandler(
   context: Context<{ Variables: BearerSessionVars }>
 ) {
   const accountId = context.var.accountId;
+  const tankId = context.req.param("tank_id");
+  if (!tankId) {
+    return context.json({ error: "INVALID_TANK" }, 400);
+  }
+
   const parseResult = unlockTankBodySchema.safeParse(await context.req.json());
   if (!parseResult.success) {
     return context.json({ error: "INVALID_TANK" }, 400);
   }
-  const { tank_id: tankId, initial_shell_id: initialShellId } = parseResult.data;
+  const { initial_shell_id: initialShellId } = parseResult.data;
 
   const tankSpec = catalog.tanks[tankId];
   if (!tankSpec) {
@@ -91,7 +95,7 @@ async function postUnlockTankHandler(
 }
 
 export const route = new Hono<{ Variables: BearerSessionVars }>().post(
-  "/",
+  "/:tank_id",
   requireBearerSession,
   postUnlockTankHandler
 );

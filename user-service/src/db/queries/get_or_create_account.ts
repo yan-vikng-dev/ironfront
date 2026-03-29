@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
-import type { DbTransactionClient } from "../client.js";
-import { accounts, authIdentities } from "../schema.js";
+import type { DbTransactionClient } from "@/db/client.js";
+import { accounts, authIdentities } from "@/db/schema.js";
 
 type GetOrCreateAccountParams = {
   provider: "dev" | "pgs";

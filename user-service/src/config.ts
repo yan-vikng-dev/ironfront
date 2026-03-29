@@ -1,15 +1,15 @@
 import type { Stage } from "./types.js";
 
-const stageValue = process.env.STAGE;
+const stageValue = process.env["STAGE"];
 if (stageValue !== "dev" && stageValue !== "prod") {
   throw new Error(`Invalid STAGE: ${stageValue}`);
 }
-const databaseUrl = process.env.DATABASE_URL;
+const databaseUrl = process.env["DATABASE_URL"];
 if (!databaseUrl) {
   throw new Error("DATABASE_URL is required");
 }
-const pgsWebClientId = (process.env.PGS_WEB_CLIENT_ID ?? "").trim();
-const pgsWebClientSecret = (process.env.PGS_WEB_CLIENT_SECRET ?? "").trim();
+const pgsWebClientId = (process.env["PGS_WEB_CLIENT_ID"] ?? "").trim();
+const pgsWebClientSecret = (process.env["PGS_WEB_CLIENT_SECRET"] ?? "").trim();
 function decodeTicketSigningPrivateKey(raw: string): string {
   const trimmed = raw.trim();
   if (!trimmed) return "";
@@ -18,7 +18,7 @@ function decodeTicketSigningPrivateKey(raw: string): string {
 }
 
 const ticketSigningPrivateKey = decodeTicketSigningPrivateKey(
-  process.env.TICKET_SIGNING_PRIVATE_KEY ?? ""
+  process.env["TICKET_SIGNING_PRIVATE_KEY"] ?? ""
 );
 if (stageValue === "prod" && (!pgsWebClientId || !pgsWebClientSecret)) {
   throw new Error("PGS_WEB_CLIENT_ID and PGS_WEB_CLIENT_SECRET are required for STAGE=prod");
@@ -28,10 +28,10 @@ if (stageValue === "prod" && !ticketSigningPrivateKey) {
 }
 
 export const config = {
-  port: Number(process.env.PORT ?? 8080),
+  port: Number(process.env["PORT"] ?? 8080),
   stage: stageValue as Stage,
-  sessionTtlSeconds: Number(process.env.SESSION_TTL_SECONDS ?? 86_400),
-  ticketTtlSeconds: Number(process.env.TICKET_TTL_SECONDS ?? 90),
+  sessionTtlSeconds: Number(process.env["SESSION_TTL_SECONDS"] ?? 86_400),
+  ticketTtlSeconds: Number(process.env["TICKET_TTL_SECONDS"] ?? 90),
   databaseUrl,
   pgsWebClientId,
   pgsWebClientSecret,

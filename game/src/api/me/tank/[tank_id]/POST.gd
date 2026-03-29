@@ -1,4 +1,4 @@
-class_name UnlockTankPost
+class_name TankUnlockPost
 extends Node
 
 
@@ -12,7 +12,7 @@ func invoke(tank_id: String, initial_shell_id: String) -> Result:
 	if normalized_tank_id.is_empty() or normalized_shell_id.is_empty():
 		return Result.err("INVALID_TANK")
 
-	var post_url: String = "%s/me/unlock-tank" % client.base_url
+	var post_url: String = "%s/me/tank/%s" % [client.base_url, normalized_tank_id]
 	var post_result: Result = await (
 		ApiRequest
 		. request_json(
@@ -23,24 +23,15 @@ func invoke(tank_id: String, initial_shell_id: String) -> Result:
 				"Content-Type: application/json",
 				"Authorization: Bearer %s" % session_token,
 			],
-			(
-				JSON
-				. stringify(
-					{
-						"tank_id": normalized_tank_id,
-						"initial_shell_id": normalized_shell_id,
-					}
-				)
-			)
+			JSON.stringify({"initial_shell_id": normalized_shell_id})
 		)
 	)
 	if post_result.is_err():
 		return post_result
 
 	var body: Dictionary = post_result.value
-	var response: UnlockTankResponse = UnlockTankResponse.parse(body)
+	var response: TankUnlockResponse = TankUnlockResponse.parse(body)
 	Account.economy.dollars = response.economy_dollars
 	Account.economy.bonds = response.economy_bonds
-	Account.loadout.tanks = response.loadout_tanks
-	Account.loadout.selected_tank_spec = response.loadout_selected_spec
+	Account.loadout.apply_server_loadout(response.loadout_dict)
 	return post_result

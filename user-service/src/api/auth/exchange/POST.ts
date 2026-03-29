@@ -2,12 +2,12 @@ import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import type { Context } from "hono";
 import { z } from "zod";
-import { verifyPgsAuthCode } from "../../../auth/pgs.js";
-import { issueSession } from "../../../auth/tokens.js";
-import { config } from "../../../config.js";
-import { db } from "../../../db/client.js";
-import { getOrCreateAccount } from "../../../db/queries/get_or_create_account.js";
-import { sessions } from "../../../db/schema.js";
+import { verifyPgsAuthCode } from "@/auth/pgs.js";
+import { issueSession } from "@/auth/tokens.js";
+import { config } from "@/config.js";
+import { db } from "@/db/client.js";
+import { getOrCreateAccount } from "@/db/queries/get_or_create_account.js";
+import { sessions } from "@/db/schema.js";
 import { exchangeBodySchema, type AuthExchangeResponse, type ExchangeBody } from "./types.js";
 
 function resolveDevIdentity(proof: string): {

@@ -1,4 +1,4 @@
-class_name UnlockShellPost
+class_name ShellUnlockPost
 extends Node
 
 
@@ -12,7 +12,9 @@ func invoke(tank_id: String, shell_id: String) -> Result:
 	if normalized_tank_id.is_empty() or normalized_shell_id.is_empty():
 		return Result.err("INVALID_SHELL")
 
-	var post_url: String = "%s/me/unlock-shell" % client.base_url
+	var post_url: String = (
+		"%s/me/tank/%s/shell/%s" % [client.base_url, normalized_tank_id, normalized_shell_id]
+	)
 	var post_result: Result = await (
 		ApiRequest
 		. request_json(
@@ -20,19 +22,17 @@ func invoke(tank_id: String, shell_id: String) -> Result:
 			post_url,
 			HTTPClient.METHOD_POST,
 			[
-				"Content-Type: application/json",
 				"Authorization: Bearer %s" % session_token,
 			],
-			JSON.stringify({"tank_id": normalized_tank_id, "shell_id": normalized_shell_id})
+			""
 		)
 	)
 	if post_result.is_err():
 		return post_result
 
 	var body: Dictionary = post_result.value
-	var response: UnlockShellResponse = UnlockShellResponse.parse(body)
+	var response: ShellUnlockResponse = ShellUnlockResponse.parse(body)
 	Account.economy.dollars = response.economy_dollars
 	Account.economy.bonds = response.economy_bonds
-	Account.loadout.tanks = response.loadout_tanks
-	Account.loadout.selected_tank_spec = response.loadout_selected_spec
+	Account.loadout.apply_server_loadout(response.loadout_dict)
 	return post_result

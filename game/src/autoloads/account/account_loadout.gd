@@ -75,6 +75,49 @@ func get_tank_config(tank_spec: TankSpec) -> TankConfig:
 	return tanks.get(tank_spec, null)
 
 
+func apply_server_loadout(loadout_dict: Dictionary) -> void:
+	var selected_tank_id_input: String = str(loadout_dict.get("selected_tank_id", "")).strip_edges()
+	var next_tanks: Dictionary[TankSpec, TankConfig] = {}
+	var source_tanks: Dictionary = loadout_dict.get("tanks", {})
+	for tank_id_variant: Variant in source_tanks.keys():
+		var tank_id: String = str(tank_id_variant).strip_edges()
+		if tank_id.is_empty():
+			continue
+		var tank_spec: TankSpec = TankManager.find_tank_spec(tank_id)
+		if tank_spec == null:
+			continue
+		next_tanks[tank_spec] = TankConfig.from_server_dict(
+			tank_spec, source_tanks.get(tank_id_variant, {})
+		)
+	var default_spec: TankSpec = _default_tank_spec()
+	var new_selected: TankSpec = null
+	if not selected_tank_id_input.is_empty():
+		new_selected = TankManager.find_tank_spec(selected_tank_id_input)
+		if new_selected != null and not next_tanks.has(new_selected):
+			new_selected = null
+	if new_selected == null and not next_tanks.is_empty():
+		new_selected = next_tanks.keys()[0] as TankSpec
+	if new_selected == null and default_spec != null:
+		new_selected = default_spec
+	if (
+		next_tanks.is_empty()
+		and default_spec != null
+		and not default_spec.allowed_shells.is_empty()
+	):
+		var first_shell: ShellSpec = default_spec.allowed_shells[0]
+		var starter_cfg: TankConfig = TankConfig.new()
+		starter_cfg.tank_spec = default_spec
+		starter_cfg.unlocked_shell_specs = [first_shell]
+		var starter_shell_loadout: Dictionary[ShellSpec, int] = {}
+		starter_shell_loadout[first_shell] = default_spec.shell_capacity
+		starter_cfg.shell_loadout_by_spec = starter_shell_loadout
+		next_tanks[default_spec] = starter_cfg
+		if new_selected == null:
+			new_selected = default_spec
+	tanks = next_tanks
+	selected_tank_spec = new_selected
+
+
 func get_selected_tank_config() -> TankConfig:
 	if tanks.has(selected_tank_spec):
 		return tanks.get(selected_tank_spec)

@@ -6,11 +6,12 @@ var base_url: String
 @onready var _auth_exchange_post: AuthExchangePost = %AuthExchangePost
 @onready var _catalog_get: CatalogGet = %CatalogGet
 @onready var _me_get: MeGet = %MeGet
-@onready var _me_loadout_patch: MeLoadoutPatch = %MeLoadoutPatch
 @onready var _me_username_patch: MeUsernamePatch = %MeUsernamePatch
 @onready var _play_ticket_post: PlayTicketPost = %PlayTicketPost
-@onready var _unlock_shell_post: UnlockShellPost = %UnlockShellPost
-@onready var _unlock_tank_post: UnlockTankPost = %UnlockTankPost
+@onready var _tank_unlock_post: TankUnlockPost = %TankUnlockPost
+@onready var _tank_select_patch: TankSelectPatch = %TankSelectPatch
+@onready var _shell_unlock_post: ShellUnlockPost = %ShellUnlockPost
+@onready var _shell_ammo_patch: ShellAmmoPatch = %ShellAmmoPatch
 
 
 func _ready() -> void:
@@ -63,19 +64,26 @@ func fetch_play_ticket() -> Result:
 	return await _play_ticket_post.invoke()
 
 
-func update_loadout(loadout_payload: Dictionary) -> Result:
-	_log_user_service("updating loadout")
-	return await _me_loadout_patch.invoke(loadout_payload)
-
-
 func unlock_tank(tank_id: String, initial_shell_id: String) -> Result:
 	_log_user_service("unlocking tank tank_id=%s" % tank_id)
-	return await _unlock_tank_post.invoke(tank_id, initial_shell_id)
+	return await _tank_unlock_post.invoke(tank_id, initial_shell_id)
+
+
+func select_tank(tank_id: String) -> Result:
+	_log_user_service("selecting tank tank_id=%s" % tank_id)
+	return await _tank_select_patch.invoke(tank_id)
 
 
 func unlock_shell(tank_id: String, shell_id: String) -> Result:
 	_log_user_service("unlocking shell tank_id=%s shell_id=%s" % [tank_id, shell_id])
-	return await _unlock_shell_post.invoke(tank_id, shell_id)
+	return await _shell_unlock_post.invoke(tank_id, shell_id)
+
+
+func set_shell_ammo(tank_id: String, shell_id: String, count: int) -> Result:
+	_log_user_service(
+		"setting shell ammo tank_id=%s shell_id=%s count=%s" % [tank_id, shell_id, count]
+	)
+	return await _shell_ammo_patch.invoke(tank_id, shell_id, count)
 
 
 func _log_user_service(message: String) -> void:

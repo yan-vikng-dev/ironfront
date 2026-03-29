@@ -7,7 +7,7 @@ mod fleet
 build: game::build-dry
 
 [parallel]
-fix: game::fix infra::fix user-service::fix matchmaker::fix fleet::fix
+fix: game::fix infra::fix user-service::fix fleet::fix
 
 gcloud:
 	gcloud config configurations activate ironfront

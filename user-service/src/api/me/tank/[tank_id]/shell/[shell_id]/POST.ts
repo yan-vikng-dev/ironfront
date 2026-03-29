@@ -1,29 +1,23 @@
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import type { Context } from "hono";
-import { z } from "zod";
-import { db } from "../../../db/client.js";
-import { accounts } from "../../../db/schema.js";
-import type { AccountLoadout } from "../../../db/schema.js";
-import { catalog } from "../../../catalog.js";
-import { requireBearerSession } from "../../require_bearer_session.js";
-import type { BearerSessionVars } from "../../require_bearer_session.js";
+import { db } from "@/db/client.js";
+import { accounts } from "@/db/schema.js";
+import type { AccountLoadout } from "@/db/schema.js";
+import { catalog } from "@/catalog.js";
+import { requireBearerSession } from "@/api/require_bearer_session.js";
+import type { BearerSessionVars } from "@/api/require_bearer_session.js";
 import type { UnlockShellResponse } from "./types.js";
-
-const unlockShellBodySchema = z.object({
-  tank_id: z.string().min(1),
-  shell_id: z.string().min(1)
-});
 
 async function postUnlockShellHandler(
   context: Context<{ Variables: BearerSessionVars }>
 ) {
   const accountId = context.var.accountId;
-  const parseResult = unlockShellBodySchema.safeParse(await context.req.json());
-  if (!parseResult.success) {
+  const tankId = context.req.param("tank_id");
+  const shellId = context.req.param("shell_id");
+  if (!tankId || !shellId) {
     return context.json({ error: "INVALID_SHELL" }, 400);
   }
-  const { tank_id: tankId, shell_id: shellId } = parseResult.data;
 
   const shellSpec = catalog.shells[shellId];
   if (!shellSpec) {
@@ -96,7 +90,7 @@ async function postUnlockShellHandler(
 }
 
 export const route = new Hono<{ Variables: BearerSessionVars }>().post(
-  "/",
+  "/:shell_id",
   requireBearerSession,
   postUnlockShellHandler
 );

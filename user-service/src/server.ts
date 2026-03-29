@@ -3,9 +3,10 @@ import { Hono } from "hono";
 import { route as authExchangeRoute } from "./api/auth/exchange/POST.js";
 import { route as catalogGetRoute } from "./api/catalog/GET.js";
 import { route as meGetRoute } from "./api/me/GET.js";
-import { route as meLoadoutPatchRoute } from "./api/me/loadout/PATCH.js";
-import { route as meUnlockShellPostRoute } from "./api/me/unlock-shell/POST.js";
-import { route as meUnlockTankPostRoute } from "./api/me/unlock-tank/POST.js";
+import { route as tankPatchRoute } from "./api/me/tank/[tank_id]/PATCH.js";
+import { route as tankPostRoute } from "./api/me/tank/[tank_id]/POST.js";
+import { route as tankShellPatchRoute } from "./api/me/tank/[tank_id]/shell/[shell_id]/PATCH.js";
+import { route as tankShellPostRoute } from "./api/me/tank/[tank_id]/shell/[shell_id]/POST.js";
 import { route as meUsernamePatchRoute } from "./api/me/username/PATCH.js";
 import { route as playTicketPostRoute } from "./api/play/ticket/POST.js";
 import { config } from "./config.js";
@@ -19,9 +20,10 @@ app.get("/health", (context) => {
 app.route("/auth/exchange", authExchangeRoute);
 app.route("/catalog", catalogGetRoute);
 app.route("/me", meGetRoute);
-app.route("/me/loadout", meLoadoutPatchRoute);
-app.route("/me/unlock-shell", meUnlockShellPostRoute);
-app.route("/me/unlock-tank", meUnlockTankPostRoute);
+app.route("/me/tank", tankPostRoute);
+app.route("/me/tank", tankPatchRoute);
+app.route("/me/tank/:tank_id/shell", tankShellPostRoute);
+app.route("/me/tank/:tank_id/shell", tankShellPatchRoute);
 app.route("/me/username", meUsernamePatchRoute);
 app.route("/play/ticket", playTicketPostRoute);
 

@@ -1,4 +1,4 @@
-import type { accounts, AccountLoadout } from "../../db/schema.js";
+import type { accounts, AccountLoadout } from "@/db/schema.js";
 
 export type MeResponse = {
   account_id: string;

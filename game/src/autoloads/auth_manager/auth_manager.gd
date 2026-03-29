@@ -94,8 +94,7 @@ func _apply_me_to_account(me: MeGetResponse) -> void:
 	Account.username_updated_at = me.username_updated_at_unix
 	Account.economy.dollars = me.economy_dollars
 	Account.economy.bonds = me.economy_bonds
-	Account.loadout.tanks = me.loadout_tanks
-	Account.loadout.selected_tank_spec = me.loadout_selected_spec
+	Account.loadout.apply_server_loadout(me.loadout_dict)
 
 
 func _clear_session() -> void:

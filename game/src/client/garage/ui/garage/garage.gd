@@ -27,7 +27,7 @@ func _process(delta: float) -> void:
 	if _loadout_debounce_timer >= 0:
 		_loadout_debounce_timer -= delta
 		if _loadout_debounce_timer < 0:
-			_sync_loadout()
+			_sync_shell_ammo()
 
 
 func _on_tank_unlock_requested(tank_spec: TankSpec) -> void:
@@ -69,19 +69,38 @@ func _on_shell_unlock_requested(shell_spec: ShellSpec) -> void:
 		return
 
 
-func _on_selected_tank_spec_updated(_spec: TankSpec) -> void:
-	_sync_loadout()
+func _on_selected_tank_spec_updated(spec: TankSpec) -> void:
+	if spec == null:
+		return
+	var result: Result = await AuthManager.user_service_client.select_tank(spec.tank_id)
+	if result.is_err():
+		show_online_join_feedback(result.error, true)
 
 
 func _on_ammo_loadout_changed() -> void:
 	_loadout_debounce_timer = LOADOUT_DEBOUNCE_SEC
 
 
-func _sync_loadout() -> void:
-	var payload: Dictionary = LoadoutPayload.from_account_loadout(Account.loadout)
-	var result: Result = await AuthManager.user_service_client.update_loadout(payload)
-	if result.is_err():
-		show_online_join_feedback(result.error, true)
+func _sync_shell_ammo() -> void:
+	var tank_spec: TankSpec = Account.loadout.selected_tank_spec
+	if tank_spec == null:
+		return
+	var tank_id: String = tank_spec.tank_id
+	var cfg: TankConfig = Account.loadout.tanks.get(tank_spec, null)
+	if cfg == null:
+		return
+	for shell_spec_key: Variant in cfg.shell_loadout_by_spec:
+		var shell_spec: ShellSpec = shell_spec_key as ShellSpec
+		if shell_spec == null:
+			continue
+		var shell_id: String = ShellManager.get_shell_id(shell_spec)
+		var count: int = int(cfg.shell_loadout_by_spec.get(shell_spec_key, 0))
+		var result: Result = await AuthManager.user_service_client.set_shell_ammo(
+			tank_id, shell_id, count
+		)
+		if result.is_err():
+			show_online_join_feedback(result.error, true)
+			return
 
 
 func show_online_join_feedback(message: String, is_error: bool) -> void:

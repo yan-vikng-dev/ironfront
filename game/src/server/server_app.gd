@@ -94,13 +94,13 @@ func _on_arena_join_requested(peer_id: int, ticket: String) -> void:
 	if player_name.is_empty():
 		_reject_arena_join(peer_id, "INVALID PLAYER NAME")
 		return
-	var join_result: Dictionary = arena_session_state.try_join_peer(
+	var join_result: Result = arena_session_state.try_join_peer(
 		peer_id, player_name, claims.get("loadout", {})
 	)
-	if not join_result.get("success", false):
-		_reject_arena_join(peer_id, str(join_result.get("message", "JOIN FAILED")))
+	if join_result.is_err():
+		_reject_arena_join(peer_id, join_result.error)
 		return
-	var tank_spec: TankSpec = join_result.get("tank_spec", null)
+	var tank_spec: TankSpec = join_result.value["tank_spec"]
 	var spawn_result: Dictionary = server_arena_runtime.spawn_peer_tank_at_random(
 		peer_id, player_name, tank_spec
 	)
@@ -113,10 +113,7 @@ func _on_arena_join_requested(peer_id: int, ticket: String) -> void:
 		peer_id, spawn_transform.origin, spawn_transform.get_rotation(), Vector2.ZERO
 	)
 	network_session.complete_arena_join(
-		peer_id,
-		str(join_result.get("message", "JOINED")),
-		spawn_transform.origin,
-		spawn_transform.get_rotation()
+		peer_id, "JOINED GLOBAL ARENA", spawn_transform.origin, spawn_transform.get_rotation()
 	)
 	network_gameplay.broadcast_state_snapshot_now()
 	print(
@@ -138,8 +135,7 @@ func _on_arena_peer_disconnected(peer_id: int) -> void:
 
 
 func _remove_arena_peer(peer_id: int, reason: String) -> bool:
-	var remove_result: Dictionary = arena_session_state.remove_peer(peer_id, reason)
-	if not remove_result.get("removed", false):
+	if not arena_session_state.remove_peer(peer_id, reason):
 		return false
 	server_arena_runtime.despawn_peer_tank(peer_id, reason)
 	network_gameplay.broadcast_state_snapshot_now()

@@ -1,10 +1,10 @@
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import type { Context } from "hono";
-import { db } from "../../db/client.js";
-import { accounts } from "../../db/schema.js";
-import { requireBearerSession } from "../require_bearer_session.js";
-import type { BearerSessionVars } from "../require_bearer_session.js";
+import { db } from "@/db/client.js";
+import { accounts } from "@/db/schema.js";
+import { requireBearerSession } from "@/api/require_bearer_session.js";
+import type { BearerSessionVars } from "@/api/require_bearer_session.js";
 import type { MeResponse } from "./types.js";
 
 async function getMeHandler(context: Context<{ Variables: BearerSessionVars }>) {

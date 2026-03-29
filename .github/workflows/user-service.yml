@@ -3,7 +3,7 @@ name: user-service
 on:
   push:
     branches: [main]
-    paths: [user-service/**]
+    paths: [user-service/**, .github/workflows/user-service.yml]
 
 env:
   REGION: europe-west1
@@ -19,16 +19,16 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - id: auth
-        uses: google-github-actions/auth@v2
+        uses: google-github-actions/auth@v3
         with:
           workload_identity_provider: ${{ env.WIF_PROVIDER }}
           service_account: ${{ env.WIF_SERVICE_ACCOUNT }}
           token_format: access_token
 
-      - uses: docker/login-action@v3
+      - uses: docker/login-action@v4
         with:
           registry: europe-west1-docker.pkg.dev
           username: oauth2accesstoken
@@ -37,7 +37,7 @@ jobs:
       - id: meta
         run: echo "tag=${GITHUB_SHA::7}-$(date +%Y%m%d%H%M%S)" >> "$GITHUB_OUTPUT"
 
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v7
         with:
           context: user-service
           push: true
@@ -45,7 +45,7 @@ jobs:
           provenance: false
           tags: ${{ env.IMAGE }}:${{ steps.meta.outputs.tag }}
 
-      - uses: google-github-actions/deploy-cloudrun@v2
+      - uses: google-github-actions/deploy-cloudrun@v3
         with:
           service: ${{ env.SERVICE }}
           image: ${{ env.IMAGE }}:${{ steps.meta.outputs.tag }}

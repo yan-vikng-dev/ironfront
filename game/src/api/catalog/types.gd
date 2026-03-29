@@ -37,4 +37,4 @@ static func apply(body: Dictionary) -> void:
 		if shell_id.is_empty():
 			continue
 		var shell_data: Dictionary = shells_dict.get(shell_id_variant, {})
-		shell_prices[shell_id] = int(shell_data.get("unlock_cost", 0))
+		shell_prices[shell_id] = int(shell_data.get("dollar_cost", 0))

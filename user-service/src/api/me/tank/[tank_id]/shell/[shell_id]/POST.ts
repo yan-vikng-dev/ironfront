@@ -41,7 +41,7 @@ async function postUnlockShellHandler(
       return { error: "ALREADY_OWNED" as const };
     }
 
-    const cost = shellSpec.unlock_cost;
+    const cost = shellSpec.dollar_cost;
     if (account.economy.dollars < cost) {
       return { error: "INSUFFICIENT_FUNDS" as const };
     }

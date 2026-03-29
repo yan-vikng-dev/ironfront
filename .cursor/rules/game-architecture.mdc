@@ -1,0 +1,66 @@
+---
+description: Game module architecture — scene lifecycle, runtime structure, refactor philosophy, folder organization, and UI reactivity patterns.
+globs: game/**/*.{gd,tscn,tres}
+alwaysApply: false
+---
+
+# Game Architecture
+
+## Module Structure
+
+- `project.godot` — Godot 4 project file. Prefer editor-driven changes for `.godot`, `.tscn`, `.tres`.
+- `src/core/` — runtime orchestration and app entrypoints (`main`, `client`, `server`).
+- `src/net/` — networking transport/protocol (`network_client`, `network_server`).
+- `src/entities/` — gameplay entities (tanks, shells, specs, shared assets).
+- `src/controllers/` — player and AI controller scenes/scripts.
+- `src/levels/` — playable level scenes and logic.
+- `src/ui/` — UI scenes, widgets, overlays, HUD.
+- `src/global_assets/` — shared art, audio, UI resources.
+- `src/game_data/` — data resources and config assets.
+- `src/config/`, `src/autoloads/` — config and autoload scripts.
+- `src/api/` — HTTP API clients (see game-code-patterns rule for conventions).
+
+## Runtime Architecture
+
+- `src/core/main.gd` selects runtime mode (client vs dedicated server).
+- `src/core/client.gd` owns client game flow, composes `$NetworkClient`.
+- `src/core/server.gd` owns server tick/runtime loop, composes `$NetworkServer`.
+- Keep transport/protocol code in `src/net/`; don't mix server transport into client scripts.
+- `just game::fix` — editor cache refresh, build, format, lint.
+
+## Scene Lifecycle Philosophy
+
+Scene tree as truth: nodes that should always be present are added as part of the scene and referenced by unique names. They are always available to parents.
+
+Instead of calling activation methods on children, let them handle internal logic in `_ready()` and trigger activation via `add_child()`.
+
+### Lifecycle Principles
+
+- Scene composition encodes invariants; node lifetime encodes state.
+- Scene-wired dependencies are always present — no runtime null checks for invariant structure.
+- Ephemeral gameplay/session state = dynamic child nodes added/removed on lifecycle transitions.
+- Prefer mount/unmount of subtree roots over distributed `is_active` flags.
+- Lifecycle boundaries explicit: orchestrator nodes own creation/teardown and expose stable signals to parents.
+
+## UI Resource Reactivity
+
+For UI reflecting `Resource` state: bind once in `_ready()` to the shared `Resource` instance, hydrate initial values immediately, update via the resource's change signals.
+
+- Avoid cross-tree parent-driven `display_*` fanout refresh calls.
+- Keep signal handling local to the UI node that owns the visual element.
+
+## Folder Structure
+
+- Mirror ownership and lifecycle boundaries in the scene tree.
+- Stable orchestrators at domain root (e.g. `arena/arena_client.*`).
+- Dynamic session/match subtrees under nested folders (e.g. `arena/runtime/*`).
+- Perfect 1:1 tree mirroring not required, but parent orchestrator + dynamic subtree grouping stays consistent.
+
+## Refactor Rules
+
+- Prioritize reducing architectural complexity and clarifying ownership over minimizing diff size.
+- No new util/helper files unless explicitly requested.
+- Prefer deleting/merging redundant files and call paths.
+- Breaking internal APIs allowed during refactors — migrate all call sites in the same change.
+- Choose the largest safe refactor validatable in one pass, not the smallest local patch.
+- A refactor is incomplete if ownership is still split across layers after behavior is fixed.

@@ -1,7 +1,0 @@
-name: project-infra
-description: Shared one-project infrastructure for Ironfront
-runtime:
-  name: nodejs
-main: src
-backend:
-  url: gs://pulumi_project_state

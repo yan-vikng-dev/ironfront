@@ -1,0 +1,35 @@
+---
+description: Core project philosophy, terminology, monorepo structure, and tooling conventions for the Ironfront project.
+alwaysApply: true
+---
+
+# Ironfront Core
+
+## Production Mode: RAPID DEVELOPMENT (0 users, 2 testers)
+
+Fast iteration, zero legacy, not scared of breaking things:
+- Removing code is a success metric; minimal systems beat complex ones.
+- Experimental changes welcome; no fear of data loss.
+- No legacy/compatibility wrappers needed.
+- Drizzle push preferred over migrations.
+- Large refactors preferred over small targeted patches.
+
+## Terminology
+
+- **module**: each top-level directory (`game/`, `user-service/`, `infra/`, `fleet/`).
+- **project**: the entire monorepo.
+
+## Structure
+
+- Each module has `agent-docs/index.md` as its docs table of contents.
+- Each module has a `justfile` with a `fix` recipe for lint/format/static-analysis.
+
+## Tooling
+
+- Root `justfile` orchestrates cross-module workflows via `mod <module>`.
+- Run `just fix` after cross-module changes; `just <module>::fix` for single-module changes.
+
+## Core Rules
+
+- Read a module's `agent-docs/index.md` and linked files before starting implementation in that module.
+- No `gcloud` commands for infrastructure — everything via the `infra/` module.

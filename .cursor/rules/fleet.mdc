@@ -1,0 +1,18 @@
+---
+description: Fleet module rules and structure for Agones game server fleet and Kubernetes cluster management.
+globs: fleet/**
+alwaysApply: false
+---
+
+# Fleet
+
+## Rules
+
+- Keep Agones and cluster runtime resources here.
+- Matchmaker consumes fleet allocation APIs but does not own fleet manifests.
+
+## Structure
+
+- `k8s/` — Kubernetes and Agones manifests/helm values.
+- `infra/` — fleet-owned infrastructure resources.
+- `scripts/` — operational scripts for rollout, validation, diagnostics.

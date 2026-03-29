@@ -1,0 +1,5 @@
+config:
+  gcp:project: ironfront-game
+  gcp:region: europe-west1
+  ironfront-infra:userServiceStage: prod
+  ironfront-infra:userServiceImageTag: 43a6495-20260307152759

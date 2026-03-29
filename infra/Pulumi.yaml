@@ -1,5 +1,5 @@
-name: user-service-infra
-description: User service deployment resources
+name: ironfront-infra
+description: All Ironfront infrastructure
 runtime:
   name: nodejs
 main: src

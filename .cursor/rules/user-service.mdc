@@ -1,0 +1,63 @@
+---
+description: User-service module rules, structure, API contracts, and development workflow.
+globs: user-service/**/*.ts
+alwaysApply: false
+---
+
+# User Service
+
+## Rules
+
+- Server is authoritative for profile/progression/economy/loadout state.
+- `stage=dev` = local development; `stage=prod` = production. Policy enforced server-side (dev accepts DevAuthProvider; prod rejects it).
+- Keep endpoint request/response contracts explicit and typed.
+- Non-sensitive config in plain config code; `.env.dev` for local dev; secret managers for prod.
+
+## Structure
+
+- `src/server.ts` — HTTP server bootstrap.
+- `src/api/` — route handlers; path-based structure mirrors game client (`auth/exchange/POST`, `me/GET`, `me/username/PATCH`). Middleware at api root (`require_bearer_session.ts`).
+- `src/auth/` — session/auth primitives.
+- Persistence: Postgres via Drizzle + Cloud SQL.
+
+## Justfile Commands
+
+- `fix` — lint/typecheck.
+- `dev` — run locally; loads `.env.dev` (STAGE=dev, DATABASE_URL).
+- `push-image` — build + push Docker image to Artifact Registry.
+- `migrate dev` — `drizzle push` against local Postgres.
+- `migrate prod` — `drizzle push` against prod DB (`.env.prod`).
+- `deploy` — push-image, set imageTag in Pulumi, pulumi up.
+
+## API v1 Contracts
+
+### POST /auth/exchange
+- Request: `{ provider: "dev" | "pgs", proof: string }`
+- Response: `{ account_id, session_token, expires_at_unix, is_new_account }`
+
+### GET /me
+- Auth: `Authorization: Bearer <session_token>`
+- Returns authoritative profile. Time fields: Unix `int` (seconds), nullable when unset.
+
+### PATCH /me/username
+- Auth: Bearer. Request: `{ username }`.
+- Sets `username_updated_at_unix` to mark onboarding complete.
+
+### PATCH /me/loadout
+- Auth: Bearer. Request: `{ selected_tank_id?, tanks?: Record<string, { unlocked_shell_ids, shell_loadout_by_id }> }` — full loadout replace.
+- Server validates tank/shell ownership against catalog.
+- Response: `{ loadout }` or 400 `{ error: "INVALID_LOADOUT" }`.
+
+### POST /me/unlock-tank
+- Auth: Bearer. Request: `{ tank_id }`.
+- Validates catalog, ownership, economy. Single transaction.
+- Response: `{ economy, loadout }` or 400 `{ error: "INSUFFICIENT_FUNDS" | "ALREADY_OWNED" | "INVALID_TANK" }`.
+
+### POST /me/unlock-shell
+- Auth: Bearer. Request: `{ tank_id, shell_id }`.
+- Validates catalog, tank ownership, shell validity. Single transaction.
+- Response: `{ economy, loadout }` or 400 `{ error: "INSUFFICIENT_FUNDS" | "ALREADY_OWNED" | "INVALID_SHELL" | "SHELL_NOT_FOR_TANK" | "TANK_NOT_OWNED" }`.
+
+### POST /play/ticket
+- Auth: Bearer.
+- Response: `{ ticket, expires_at_unix }`. Ticket = JWT (RS256) for game server join auth.

@@ -1,0 +1,30 @@
+---
+description: Infrastructure module rules, structure, config/secret policy, and Pulumi stack details.
+globs: infra/**
+alwaysApply: false
+---
+
+# Infrastructure
+
+## Rules
+
+- Single Pulumi stack for all infrastructure. Add new services as component functions in `src/`.
+- No `gcloud` CLI for infra manipulation — use the Pulumi stack.
+- Hardcode project constants (VPC name, subnet CIDR, secret names, instance counts) in code. Only externalize values that truly vary.
+
+## Structure
+
+- `src/config.ts` — stack configuration and secrets.
+- `src/services.ts` — GCP API enablement.
+- `src/project.ts` — VPC, Artifact Registry, CI identity, Cloud Build IAM.
+- `src/user_service.ts` — Cloud Run, secrets, runtime identity, custom domain mapping.
+
+## Config & Secret Policy
+
+- `Pulumi.prod.yaml` holds non-secret config. Secrets are added via `pulumi config set --secret`.
+- Local/dev secrets: `.env` files (e.g. `user-service/.env.dev`, committed).
+- `user-service/.env.prod`: prod DB URL for migrate/studio (gitignored).
+
+## Custom Domain
+
+When `userServiceEnableCustomDomain` is true, creates a Cloud Run domain mapping (free, no load balancer or reserved IP). Set a CNAME in DNS pointing to `ghs.googlehosted.com`.

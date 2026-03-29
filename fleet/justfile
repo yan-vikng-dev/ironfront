@@ -1,2 +1,0 @@
-fix:
-	@echo "fleet: scaffold only, no lint pipeline yet"

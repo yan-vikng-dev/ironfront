@@ -1,0 +1,155 @@
+---
+description: GDScript coding patterns, naming, typing, node access, resource binding, API client conventions, and Result pattern for the game module.
+globs: game/**/*.gd
+alwaysApply: false
+---
+
+# GDScript Code Patterns
+
+Follow these patterns literally when writing or reviewing GDScript.
+
+## Naming and Files
+- Tabs for indentation.
+- `snake_case` for variables/functions; `PascalCase` for `class_name`; `snake_case` for filenames.
+
+## Node Access
+
+Prefer `%UniqueName` for sibling/child dependencies. Avoid deep path lookups.
+
+```gdscript
+# ✅
+@onready var network_server: NetworkServer = %Network
+
+# ❌
+var network_server: Node = get_node("/root/Main/Runtime/Network")
+```
+
+## Autoloads
+
+- Prefer script autoloads. Add child nodes in `_ready()` via `instance()` + `add_child()`.
+- Godot forbids `class_name X` when autoload is named `X`. Use a non-conflicting class_name (e.g. `AuthManagerNode`).
+- Access singletons by autoload name (e.g. `AuthManager`).
+
+## Type Everything
+
+- Typed fields, typed arrays, typed dictionaries.
+- Avoid `Object` unless necessary.
+
+## Parse at Boundaries
+
+RPC payloads and API dictionaries are trust boundaries. Parse/coerce once, then use typed values.
+
+```gdscript
+# ✅
+var peer_id: int = int(payload.get("peer_id", 0))
+var player_name: String = str(payload.get("player_name", ""))
+if peer_id <= 0 or player_name.is_empty():
+	return
+
+# ❌
+if payload["peer_id"] > 0:
+	do_spawn(payload["peer_id"], payload["player_name"])
+```
+
+For external time fields, convert at boundary to Unix timestamp `int` (seconds).
+
+## Nullable Built-in Types
+
+GDScript has no `int?`. Use `Variant` where a value may be null, coerce at use sites.
+
+```gdscript
+# ✅
+var username_updated_at_unix: Variant = body.get("username_updated_at_unix", null)
+if username_updated_at_unix == null or int(username_updated_at_unix) <= 0:
+	show_username_prompt()
+
+# ❌
+var username_updated_at: int = body.get("username_updated_at_unix", 0)
+```
+
+## class_name Globals for Static APIs
+
+Call static functions by class name directly. No `preload()` aliases for globally-registered utility classes.
+
+```gdscript
+# ✅
+var player_data: PlayerData = DataStore.load_or_create(PlayerData, PlayerData.FILE_NAME)
+
+# ❌
+const DATA_STORE := preload("res://src/game_data/data_store.gd")
+var player_data: PlayerData = DATA_STORE.load_or_create(PlayerData, PlayerData.FILE_NAME)
+```
+
+## Cached Resource Binding (DataStore-Backed)
+
+Bind `DataStore.load_or_create(...)` resources as top-level typed vars at class scope. Don't call `get_instance()` repeatedly.
+
+```gdscript
+# ✅
+class_name TankDisplayPanel extends Control
+var account: Account = Account.get_instance()
+
+func _ready() -> void:
+	Utils.connect_checked(account.username_updated,
+		func(new_username: String) -> void: username_label.text = new_username)
+	Utils.connect_checked(account.loadout.selected_tank_spec_updated,
+		func(_spec: TankSpec) -> void: display_tank())
+	display_tank()
+```
+
+## Resource State: Properties, Not Wrappers
+
+Prefer direct properties and property signals over `get_*`/`set_*` wrappers on Resources.
+
+```gdscript
+# ✅
+var selected_tank_spec: TankSpec = account.loadout.selected_tank_spec
+account.loadout.selected_tank_spec = item.tank_spec
+
+# ❌
+var selected_tank_spec: TankSpec = account.loadout.get_selected_tank_spec()
+account.set_selected_tank_spec(item.tank_spec)
+```
+
+## API Client Router + Handler Convention
+
+- Router scene (`user_service_client.tscn`) with handler nodes as unique-name children.
+- Routes defined by folders: `api/<route>/VERB.gd` + `types.gd`.
+- Handler class names: `FullRouteVerb` (e.g. `AuthExchangePost`, `MeUsernamePatch`).
+- Handlers expose `func invoke(...) -> Result`. Call `ApiRequest.request_json(...)` for HTTP.
+- Response DTOs: `*Response` suffix. Parsers: `static func parse(body: Dictionary) -> T` (null on failure).
+- Multi-step flows orchestrated in the router, not inside a single handler.
+
+## Rust-Style Result Pattern
+
+`Result` (`api/result.gd`): `Result.ok(value)`, `Result.err(reason)`, `.is_ok()`, `.is_err()`, `.value`, `.error`, `.and_then(transform, err_reason)`.
+
+```gdscript
+# Error propagation (like Rust's ?)
+func invoke() -> Result:
+	var http_result: Result = await ApiRequest.request_json(...)
+	if http_result.is_err():
+		return http_result
+	return Result.ok(http_result.value)
+
+# and_then for parse-or-fail
+func invoke(provider: String, proof: String) -> Result:
+	var exchange_result: Result = await ApiRequest.request_json(...)
+	return exchange_result.and_then(AuthExchangeResponse.parse, "EXCHANGE_PARSE_FAILED")
+
+# Multi-step orchestration
+func exchange_auth(provider: String, proof: String) -> Result:
+	var exchange_result: Result = await _auth_exchange_post.invoke(provider, proof)
+	if exchange_result.is_err():
+		return exchange_result
+	var me_result: Result = await _me_get.invoke(exchange_result.value.session_token)
+	if me_result.is_err():
+		return me_result
+	return Result.ok(ExchangeAuthResult.new(exchange_result.value, me_result.value))
+```
+
+Avoid deeply nested, overdefensive single-method flows. Prefer linear control flow with clear success/failure boundaries.
+
+## Documentation Requirement
+
+When a new pattern is adopted in this repo, update this rule with a concrete good/bad example.

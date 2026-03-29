@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
     paths: [user-service/**, .github/workflows/user-service.yml]
+  workflow_dispatch:
 
 env:
   REGION: europe-west1

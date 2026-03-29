@@ -19,7 +19,7 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - id: auth
         uses: google-github-actions/auth@v3
@@ -30,12 +30,9 @@ jobs:
 
       - uses: docker/login-action@v4
         with:
-          registry: europe-west1-docker.pkg.dev
+          registry: ${{ env.REGION }}-docker.pkg.dev
           username: oauth2accesstoken
           password: ${{ steps.auth.outputs.access_token }}
-
-      - id: meta
-        run: echo "tag=${GITHUB_SHA::7}-$(date +%Y%m%d%H%M%S)" >> "$GITHUB_OUTPUT"
 
       - uses: docker/build-push-action@v7
         with:
@@ -43,10 +40,10 @@ jobs:
           push: true
           platforms: linux/amd64
           provenance: false
-          tags: ${{ env.IMAGE }}:${{ steps.meta.outputs.tag }}
+          tags: ${{ env.IMAGE }}:${{ github.sha }}
 
       - uses: google-github-actions/deploy-cloudrun@v3
         with:
           service: ${{ env.SERVICE }}
-          image: ${{ env.IMAGE }}:${{ steps.meta.outputs.tag }}
+          image: ${{ env.IMAGE }}:${{ github.sha }}
           region: ${{ env.REGION }}

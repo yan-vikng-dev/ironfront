@@ -1,6 +1,7 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { route as authExchangeRoute } from "./api/auth/exchange/POST.js";
+import { route as catalogGetRoute } from "./api/catalog/GET.js";
 import { route as meGetRoute } from "./api/me/GET.js";
 import { route as meLoadoutPatchRoute } from "./api/me/loadout/PATCH.js";
 import { route as meUnlockShellPostRoute } from "./api/me/unlock-shell/POST.js";
@@ -16,6 +17,7 @@ app.get("/health", (context) => {
 });
 
 app.route("/auth/exchange", authExchangeRoute);
+app.route("/catalog", catalogGetRoute);
 app.route("/me", meGetRoute);
 app.route("/me/loadout", meLoadoutPatchRoute);
 app.route("/me/unlock-shell", meUnlockShellPostRoute);

@@ -4,7 +4,7 @@ config:
   user-service-infra:customDomain: api.ironfront.live
   user-service-infra:cloudRunDeletionProtection: "false"
   user-service-infra:dbSecretName: user-service-prod-database-url
-  user-service-infra:enableCustomDomain: "true"
+  user-service-infra:enableCustomDomain: "false"
   user-service-infra:imageTag: 43a6495-20260307152759
   user-service-infra:maxInstanceCount: "2"
   user-service-infra:minInstanceCount: "0"

@@ -5,7 +5,7 @@ import { z } from "zod";
 import { db } from "../../../db/client.js";
 import { accounts } from "../../../db/schema.js";
 import type { AccountLoadout } from "../../../db/schema.js";
-import { loadCatalog } from "../../../catalog.js";
+import { catalog } from "../../../catalog.js";
 import { requireBearerSession } from "../../require_bearer_session.js";
 import type { BearerSessionVars } from "../../require_bearer_session.js";
 import type { UnlockTankResponse } from "./types.js";
@@ -13,7 +13,8 @@ import type { UnlockTankResponse } from "./types.js";
 const DEFAULT_SHELL_AMMO = 70;
 
 const unlockTankBodySchema = z.object({
-  tank_id: z.string().min(1)
+  tank_id: z.string().min(1),
+  initial_shell_id: z.string().min(1)
 });
 
 async function postUnlockTankHandler(
@@ -24,9 +25,8 @@ async function postUnlockTankHandler(
   if (!parseResult.success) {
     return context.json({ error: "INVALID_TANK" }, 400);
   }
-  const { tank_id: tankId } = parseResult.data;
+  const { tank_id: tankId, initial_shell_id: initialShellId } = parseResult.data;
 
-  const catalog = loadCatalog();
   const tankSpec = catalog.tanks[tankId];
   if (!tankSpec) {
     return context.json({ error: "INVALID_TANK" }, 400);
@@ -45,14 +45,8 @@ async function postUnlockTankHandler(
     }
 
     const cost = tankSpec.dollar_cost;
-    const dollars = account.economy.dollars;
-    if (dollars < cost) {
+    if (account.economy.dollars < cost) {
       return { error: "INSUFFICIENT_FUNDS" as const };
-    }
-
-    const firstShellId = tankSpec.allowed_shell_ids[0];
-    if (!firstShellId) {
-      return { error: "INVALID_TANK" as const };
     }
 
     const newLoadout: AccountLoadout = {
@@ -60,15 +54,15 @@ async function postUnlockTankHandler(
       tanks: {
         ...loadout.tanks,
         [tankId]: {
-          unlocked_shell_ids: [firstShellId],
-          shell_loadout_by_id: { [firstShellId]: DEFAULT_SHELL_AMMO }
+          unlocked_shell_ids: [initialShellId],
+          shell_loadout_by_id: { [initialShellId]: DEFAULT_SHELL_AMMO }
         }
       }
     };
 
     const newEconomy = {
       ...account.economy,
-      dollars: dollars - cost
+      dollars: account.economy.dollars - cost
     };
 
     const [updated] = await tx

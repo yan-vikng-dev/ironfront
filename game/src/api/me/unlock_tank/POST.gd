@@ -2,13 +2,14 @@ class_name UnlockTankPost
 extends Node
 
 
-func invoke(tank_id: String) -> ApiResult:
+func invoke(tank_id: String, initial_shell_id: String) -> ApiResult:
 	var client: UserServiceClient = get_parent()
 	var session_token: String = AuthManager.session_token
 	if session_token.is_empty():
 		return ApiResult.fail("NOT_SIGNED_IN")
 	var normalized_tank_id: String = str(tank_id).strip_edges()
-	if normalized_tank_id.is_empty():
+	var normalized_shell_id: String = str(initial_shell_id).strip_edges()
+	if normalized_tank_id.is_empty() or normalized_shell_id.is_empty():
 		return ApiResult.fail("INVALID_TANK")
 
 	var post_url: String = "%s/me/unlock-tank" % client.base_url
@@ -22,7 +23,15 @@ func invoke(tank_id: String) -> ApiResult:
 				"Content-Type: application/json",
 				"Authorization: Bearer %s" % session_token,
 			],
-			JSON.stringify({"tank_id": normalized_tank_id})
+			(
+				JSON
+				. stringify(
+					{
+						"tank_id": normalized_tank_id,
+						"initial_shell_id": normalized_shell_id,
+					}
+				)
+			)
 		)
 	)
 	if not post_result.success:

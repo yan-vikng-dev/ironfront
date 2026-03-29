@@ -5,7 +5,6 @@ import { z } from "zod";
 import { db } from "../../../db/client.js";
 import { accounts } from "../../../db/schema.js";
 import type { AccountLoadout } from "../../../db/schema.js";
-import { loadCatalog } from "../../../catalog.js";
 import { requireBearerSession } from "../../require_bearer_session.js";
 import type { BearerSessionVars } from "../../require_bearer_session.js";
 import type { PatchLoadoutResponse } from "./types.js";
@@ -38,44 +37,9 @@ async function patchLoadoutHandler(
     return context.json({ error: "PROFILE_NOT_FOUND" }, 404);
   }
 
-  const catalog = loadCatalog();
-  const ownedTankIds = new Set(Object.keys(account.loadout.tanks));
-
-  const tanks = body.tanks ?? account.loadout.tanks;
-  const selectedTankId = body.selected_tank_id ?? account.loadout.selected_tank_id;
-  if (selectedTankId && !Object.hasOwn(tanks, selectedTankId)) {
-    return context.json({ error: "INVALID_LOADOUT" }, 400);
-  }
-  if (selectedTankId && !ownedTankIds.has(selectedTankId)) {
-    return context.json({ error: "INVALID_LOADOUT" }, 400);
-  }
-  for (const [tankId, tankCfg] of Object.entries(tanks)) {
-    const tankSpec = catalog.tanks[tankId];
-    if (!tankSpec) {
-      return context.json({ error: "INVALID_LOADOUT" }, 400);
-    }
-    if (!ownedTankIds.has(tankId)) {
-      return context.json({ error: "INVALID_LOADOUT" }, 400);
-    }
-    const allowedShellIds = new Set(tankSpec.allowed_shell_ids);
-    for (const shellId of tankCfg.unlocked_shell_ids) {
-      if (!allowedShellIds.has(shellId)) {
-        return context.json({ error: "INVALID_LOADOUT" }, 400);
-      }
-    }
-    for (const shellId of Object.keys(tankCfg.shell_loadout_by_id)) {
-      if (!tankCfg.unlocked_shell_ids.includes(shellId)) {
-        return context.json({ error: "INVALID_LOADOUT" }, 400);
-      }
-      if (!allowedShellIds.has(shellId)) {
-        return context.json({ error: "INVALID_LOADOUT" }, 400);
-      }
-    }
-  }
-
   const newLoadout: AccountLoadout = {
-    selected_tank_id: selectedTankId ?? account.loadout.selected_tank_id,
-    tanks
+    selected_tank_id: body.selected_tank_id ?? account.loadout.selected_tank_id,
+    tanks: body.tanks ?? account.loadout.tanks
   };
 
   const [updated] = await db

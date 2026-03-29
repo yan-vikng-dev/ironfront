@@ -11,4 +11,3 @@ damage = 330
 shell_id = "debug_tank.debug_apcr"
 shell_name = "DEBUG_APCR"
 caliber = 90
-unlock_cost = 0

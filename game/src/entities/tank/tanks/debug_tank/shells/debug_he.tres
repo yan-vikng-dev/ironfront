@@ -11,5 +11,4 @@ penetration = 30.0
 shell_id = "debug_tank.debug_he"
 shell_name = "DEBUG_AP"
 caliber = 90
-unlock_cost = 0
 metadata/_custom_type_script = "uid://clsuuy75c3ymp"

@@ -32,7 +32,6 @@ const CALIBER_THRESHOLD_LARGE: float = 120.0
 @export var display_name: String
 @export var full_name: String
 @export var nation: String
-@export var dollar_cost: int
 
 @export_category("Assets")
 @export_group("Sprites")

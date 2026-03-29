@@ -12,4 +12,3 @@ penetration = 80.0
 shell_id = "debug_tank.debug_ap_t"
 shell_name = "DEBUG_AP"
 caliber = 90
-unlock_cost = 0

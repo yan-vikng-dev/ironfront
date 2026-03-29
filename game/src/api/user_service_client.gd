@@ -4,6 +4,7 @@ extends Node
 var base_url: String
 
 @onready var _auth_exchange_post: AuthExchangePost = %AuthExchangePost
+@onready var _catalog_get: CatalogGet = %CatalogGet
 @onready var _me_get: MeGet = %MeGet
 @onready var _me_loadout_patch: MeLoadoutPatch = %MeLoadoutPatch
 @onready var _me_username_patch: MeUsernamePatch = %MeUsernamePatch
@@ -38,7 +39,11 @@ func exchange_auth(provider: String, proof: String) -> ApiResult:
 	if not exchange_result.success:
 		return exchange_result
 
-	_log_user_service("exchange succeeded, fetching profile")
+	_log_user_service("exchange succeeded, fetching catalog + profile")
+	var catalog_result: ApiResult = await _catalog_get.invoke()
+	if not catalog_result.success:
+		return ApiResult.fail("CATALOG_FETCH_FAILED")
+
 	var me_result: ApiResult = await _me_get.invoke(exchange_result.body.session_token)
 	if not me_result.success:
 		return me_result
@@ -62,9 +67,9 @@ func update_loadout(loadout_payload: Dictionary) -> ApiResult:
 	return await _me_loadout_patch.invoke(loadout_payload)
 
 
-func unlock_tank(tank_id: String) -> ApiResult:
+func unlock_tank(tank_id: String, initial_shell_id: String) -> ApiResult:
 	_log_user_service("unlocking tank tank_id=%s" % tank_id)
-	return await _unlock_tank_post.invoke(tank_id)
+	return await _unlock_tank_post.invoke(tank_id, initial_shell_id)
 
 
 func unlock_shell(tank_id: String, shell_id: String) -> ApiResult:

@@ -12,5 +12,4 @@ penetration = 120.0
 shell_id = "debug_tank.debug_heat"
 shell_name = "DEBUG_HEAT"
 caliber = 90
-unlock_cost = 0
 metadata/_custom_type_script = "uid://clsuuy75c3ymp"

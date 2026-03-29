@@ -70,7 +70,8 @@ func display_shell(
 	count_slider.max_value = max_cap
 	count_slider.tick_count = clamp(max_cap + 1, 2, MAX_TICK_COUNT)
 	ammo_count_container.show()
-	price_label.text = Utils.format_dollars(shell_spec.unlock_cost)
+	var shell_id: String = ShellManager.get_shell_id(shell_spec)
+	price_label.text = Utils.format_dollars(CatalogPrices.get_shell_price(shell_id))
 	if is_locked:
 		current_allowed_count = 0
 		update_count(0)
@@ -141,7 +142,8 @@ func _set_unlockable_overlay_visibility(show_unlockable_overlay: bool) -> void:
 func _refresh_locked_state() -> void:
 	if not is_locked:
 		return
-	if Account.economy.dollars >= shell_spec.unlock_cost:
+	var shell_price: int = CatalogPrices.get_shell_price(ShellManager.get_shell_id(shell_spec))
+	if Account.economy.dollars >= shell_price:
 		state = State.UNLOCKABLE
 		return
 	state = State.LOCKED

@@ -1,13 +1,14 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://src/api/user_service_client.gd" id="1_client"]
 [ext_resource type="Script" path="res://src/api/auth/exchange/POST.gd" id="2_auth"]
-[ext_resource type="Script" path="res://src/api/me/GET.gd" id="3_me_get"]
-[ext_resource type="Script" path="res://src/api/me/loadout/PATCH.gd" id="4_me_loadout"]
-[ext_resource type="Script" path="res://src/api/me/username/PATCH.gd" id="5_me_patch"]
-[ext_resource type="Script" path="res://src/api/me/unlock_shell/POST.gd" id="6_unlock_shell"]
-[ext_resource type="Script" path="res://src/api/me/unlock_tank/POST.gd" id="7_unlock_tank"]
-[ext_resource type="Script" path="res://src/api/play/ticket/POST.gd" id="8_play_ticket"]
+[ext_resource type="Script" path="res://src/api/catalog/GET.gd" id="3_catalog"]
+[ext_resource type="Script" path="res://src/api/me/GET.gd" id="4_me_get"]
+[ext_resource type="Script" path="res://src/api/me/loadout/PATCH.gd" id="5_me_loadout"]
+[ext_resource type="Script" path="res://src/api/me/username/PATCH.gd" id="6_me_patch"]
+[ext_resource type="Script" path="res://src/api/me/unlock_shell/POST.gd" id="7_unlock_shell"]
+[ext_resource type="Script" path="res://src/api/me/unlock_tank/POST.gd" id="8_unlock_tank"]
+[ext_resource type="Script" path="res://src/api/play/ticket/POST.gd" id="9_play_ticket"]
 
 [node name="UserServiceClient" type="Node" unique_name_in_owner="true"]
 script = ExtResource("1_client")
@@ -16,26 +17,30 @@ script = ExtResource("1_client")
 unique_name_in_owner = true
 script = ExtResource("2_auth")
 
+[node name="CatalogGet" type="Node" parent="."]
+unique_name_in_owner = true
+script = ExtResource("3_catalog")
+
 [node name="MeGet" type="Node" parent="."]
 unique_name_in_owner = true
-script = ExtResource("3_me_get")
+script = ExtResource("4_me_get")
 
 [node name="MeLoadoutPatch" type="Node" parent="."]
 unique_name_in_owner = true
-script = ExtResource("4_me_loadout")
+script = ExtResource("5_me_loadout")
 
 [node name="MeUsernamePatch" type="Node" parent="."]
 unique_name_in_owner = true
-script = ExtResource("5_me_patch")
+script = ExtResource("6_me_patch")
 
 [node name="PlayTicketPost" type="Node" parent="."]
 unique_name_in_owner = true
-script = ExtResource("8_play_ticket")
+script = ExtResource("9_play_ticket")
 
 [node name="UnlockShellPost" type="Node" parent="."]
 unique_name_in_owner = true
-script = ExtResource("6_unlock_shell")
+script = ExtResource("7_unlock_shell")
 
 [node name="UnlockTankPost" type="Node" parent="."]
 unique_name_in_owner = true
-script = ExtResource("7_unlock_tank")
+script = ExtResource("8_unlock_tank")

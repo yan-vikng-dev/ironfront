@@ -104,7 +104,6 @@ tank_id = "tiger_1"
 display_name = "Tiger I"
 full_name = "Pz.Kpfw. VI Tiger Ausf. E"
 nation = "germany"
-dollar_cost = 500000
 turret_sprite = SubResource("AtlasTexture_48i7y")
 cannon_sprite = SubResource("AtlasTexture_a1xuu")
 hull_sprite = SubResource("AtlasTexture_x46jr")

@@ -5,7 +5,7 @@ import { z } from "zod";
 import { db } from "../../../db/client.js";
 import { accounts } from "../../../db/schema.js";
 import type { AccountLoadout } from "../../../db/schema.js";
-import { loadCatalog } from "../../../catalog.js";
+import { catalog } from "../../../catalog.js";
 import { requireBearerSession } from "../../require_bearer_session.js";
 import type { BearerSessionVars } from "../../require_bearer_session.js";
 import type { UnlockShellResponse } from "./types.js";
@@ -25,15 +25,9 @@ async function postUnlockShellHandler(
   }
   const { tank_id: tankId, shell_id: shellId } = parseResult.data;
 
-  const catalog = loadCatalog();
   const shellSpec = catalog.shells[shellId];
   if (!shellSpec) {
     return context.json({ error: "INVALID_SHELL" }, 400);
-  }
-
-  const tankSpec = catalog.tanks[tankId];
-  if (!tankSpec || !tankSpec.allowed_shell_ids.includes(shellId)) {
-    return context.json({ error: "SHELL_NOT_FOR_TANK" }, 400);
   }
 
   const result = await db.transaction(async (tx) => {
@@ -54,18 +48,13 @@ async function postUnlockShellHandler(
     }
 
     const cost = shellSpec.unlock_cost;
-    const dollars = account.economy.dollars;
-    if (dollars < cost) {
+    if (account.economy.dollars < cost) {
       return { error: "INSUFFICIENT_FUNDS" as const };
     }
 
     const newTankLoadout = {
       ...tankLoadout,
-      unlocked_shell_ids: [...tankLoadout.unlocked_shell_ids, shellId],
-      shell_loadout_by_id: {
-        ...tankLoadout.shell_loadout_by_id,
-        [shellId]: tankLoadout.shell_loadout_by_id[shellId] ?? 0
-      }
+      unlocked_shell_ids: [...tankLoadout.unlocked_shell_ids, shellId]
     };
 
     const newLoadout: AccountLoadout = {
@@ -78,7 +67,7 @@ async function postUnlockShellHandler(
 
     const newEconomy = {
       ...account.economy,
-      dollars: dollars - cost
+      dollars: account.economy.dollars - cost
     };
 
     const [updated] = await tx

@@ -73,7 +73,7 @@ func set_unlockable_overlay_visibility(show_unlockable_overlay: bool) -> void:
 func display_tank(spec: TankSpec) -> void:
 	tank_spec = spec
 	assert(tank_spec != null, "Missing tank spec")
-	tank_price = tank_spec.dollar_cost
+	tank_price = CatalogPrices.get_tank_price(tank_spec.tank_id)
 	_tank_image.texture = tank_spec.preview_texture
 	_price_label.text = Utils.format_dollars(tank_price)
 	_name_label.text = tank_spec.display_name

@@ -11,4 +11,3 @@ damage = 280
 penetration = 30.0
 shell_id = "m4a1_sherman.m63"
 shell_name = "M63"
-unlock_cost = 8000

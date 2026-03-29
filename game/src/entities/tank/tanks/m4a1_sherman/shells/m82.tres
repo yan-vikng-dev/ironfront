@@ -10,4 +10,3 @@ muzzle_velocity = 450.0
 damage = 210
 shell_id = "m4a1_sherman.m82"
 shell_name = "M82"
-unlock_cost = 12000

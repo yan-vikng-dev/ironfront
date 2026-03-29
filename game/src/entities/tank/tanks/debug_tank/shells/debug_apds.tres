@@ -11,5 +11,4 @@ damage = 300
 shell_id = "debug_tank.debug_apds"
 shell_name = "DEBUG_APDS"
 caliber = 90
-unlock_cost = 0
 metadata/_custom_type_script = "uid://clsuuy75c3ymp"

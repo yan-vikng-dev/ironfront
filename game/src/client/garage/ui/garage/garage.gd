@@ -32,10 +32,19 @@ func _process(delta: float) -> void:
 
 func _on_tank_unlock_requested(tank_spec: TankSpec) -> void:
 	assert(tank_spec != null, "Missing tank spec")
-	if Account.economy.dollars < tank_spec.dollar_cost:
+	var tank_price: int = CatalogPrices.get_tank_price(tank_spec.tank_id)
+	if Account.economy.dollars < tank_price:
 		return
+	var first_shell: ShellSpec = (
+		tank_spec.allowed_shells[0] if not tank_spec.allowed_shells.is_empty() else null
+	)
+	if first_shell == null:
+		return
+	var initial_shell_id: String = ShellManager.get_shell_id(first_shell)
 	UiBus.unlock_busy_changed.emit(true)
-	var result: ApiResult = await AuthManager.user_service_client.unlock_tank(tank_spec.tank_id)
+	var result: ApiResult = await AuthManager.user_service_client.unlock_tank(
+		tank_spec.tank_id, initial_shell_id
+	)
 	UiBus.unlock_busy_changed.emit(false)
 	if not result.success:
 		show_online_join_feedback(result.reason, true)
@@ -46,10 +55,11 @@ func _on_shell_unlock_requested(shell_spec: ShellSpec) -> void:
 	var tank_spec: TankSpec = Account.loadout.selected_tank_spec
 	if tank_spec == null:
 		return
-	if Account.economy.dollars < shell_spec.unlock_cost:
+	var shell_id: String = ShellManager.get_shell_id(shell_spec)
+	var shell_price: int = CatalogPrices.get_shell_price(shell_id)
+	if Account.economy.dollars < shell_price:
 		return
 	UiBus.unlock_busy_changed.emit(true)
-	var shell_id: String = ShellManager.get_shell_id(shell_spec)
 	var result: ApiResult = await AuthManager.user_service_client.unlock_shell(
 		tank_spec.tank_id, shell_id
 	)

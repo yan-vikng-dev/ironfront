@@ -1,54 +1,15 @@
 set shell := ["bash", "-euo", "pipefail", "-c"]
 
-env_dir := justfile_directory()
-gcp_project := env_var_or_default("GCP_PROJECT", "ironfront-game")
-gcp_region := env_var_or_default("GCP_REGION", "europe-west1")
-artifact_repo := env_var_or_default("ARTIFACT_REPO", "ironfront")
-image_name := env_var_or_default("IMAGE_NAME", "user-service")
+env_dir := source_directory()
 
 fix:
 	pnpm run fix
 
-dev: dev-db
+dev:
 	set -a; source "{{env_dir}}/.env.dev" 2>/dev/null || true; set +a; pnpm run dev
 
-dev-db:
-	docker start ironfront-user-service-pg || docker run --name ironfront-user-service-pg -e POSTGRES_USER=user -e POSTGRES_PASSWORD=pass -e POSTGRES_DB=user_service -p 5432:5432 postgres:17
+migrate:
+	set -a; source "{{env_dir}}/.env.dev" 2>/dev/null || true; set +a; pnpm run db:push
 
-push-image tag=(`git rev-parse --short HEAD` + "-" + `date +%Y%m%d%H%M%S`):
-	TAG="{{tag}}"; \
-	IMAGE="{{gcp_region}}-docker.pkg.dev/{{gcp_project}}/{{artifact_repo}}/{{image_name}}:${TAG}"; \
-	echo "Building and pushing linux/amd64 image $IMAGE"; \
-	docker buildx build --platform linux/amd64 -t "$IMAGE" --push .; \
-	echo "IMAGE_TAG=$TAG"; \
-	echo "IMAGE=$IMAGE"
-
-migrate target:
-	just _migrate-{{target}}
-
-studio target:
-	just _studio-{{target}}
-
-[private]
-_with-dev-env cmd:
-	set -a; source "{{env_dir}}/.env.dev" 2>/dev/null || true; set +a; {{cmd}}
-
-[private]
-_with-prod-env cmd:
-	set -a; source "{{env_dir}}/.env.prod" 2>/dev/null || true; set +a; \
-	DATABASE_URL="${DATABASE_URL:-${USER_SERVICE_DB_URL:-}}"; \
-	if [ -z "$DATABASE_URL" ]; then echo "DATABASE_URL or USER_SERVICE_DB_URL required in .env.prod"; exit 1; fi; \
-	{{cmd}}
-
-_migrate-dev: dev-db (_with-dev-env "pnpm run db:push")
-_studio-dev: dev-db (_with-dev-env "pnpm run db:studio")
-_migrate-prod: (_with-prod-env "pnpm run db:push && echo 'prod DB push completed'")
-_studio-prod: (_with-prod-env "pnpm run db:studio")
-
-deploy:
-	TAG="$(git rev-parse --short HEAD)-$(date +%Y%m%d%H%M%S)"; \
-	just push-image "$TAG"; \
-	cd ../infra/user-service; \
-	pulumi config set user-service-infra:imageTag "$TAG" --stack prod; \
-	pulumi up --yes --stack prod; \
-	echo "Deployed image tag $TAG to stack prod"
+studio:
+	set -a; source "{{env_dir}}/.env.dev" 2>/dev/null || true; set +a; pnpm run db:studio

@@ -1,2 +1,0 @@
-fix:
-	@echo "matchmaker: scaffold only, no lint pipeline yet"

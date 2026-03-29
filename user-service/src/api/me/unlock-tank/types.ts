@@ -3,6 +3,7 @@ import type { accounts } from "../../../db/schema.js";
 
 export type UnlockTankBody = {
   tank_id: string;
+  initial_shell_id: string;
 };
 
 export type UnlockTankResponse = {

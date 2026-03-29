@@ -54,15 +54,16 @@ func is_signed_in() -> bool:
 
 func _on_provider_sign_in_succeeded(provider: String, proof: String) -> void:
 	_log_auth("provider sign-in succeeded provider=%s" % provider)
-	var exchange_result: ApiResult = await user_service_client.exchange_auth(provider, proof)
+	var exchange_result: Result = await user_service_client.exchange_auth(provider, proof)
 	if not is_inside_tree():
 		return
-	if not exchange_result.success:
+	if exchange_result.is_err():
 		_clear_session()
-		_log_auth("user-service exchange failed reason=%s" % exchange_result.reason)
-		sign_in_attempt_completed.emit(false, exchange_result.reason, false)
+		var err: String = exchange_result.error
+		_log_auth("user-service exchange failed reason=%s" % err)
+		sign_in_attempt_completed.emit(false, err, false)
 		return
-	var auth_result: ExchangeAuthResult = exchange_result.body
+	var auth_result: ExchangeAuthResult = exchange_result.value
 	if auth_result == null:
 		_clear_session()
 		_log_auth("user-service exchange failed invalid response shape")

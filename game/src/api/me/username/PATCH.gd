@@ -2,7 +2,7 @@ class_name MeUsernamePatch
 extends Node
 
 
-func invoke(username: String) -> ApiResult:
+func invoke(username: String) -> Result:
 	var client: UserServiceClient = get_parent()
 	var session_token: String = AuthManager.session_token
 	var normalized_username: String = username.strip_edges()
@@ -10,10 +10,10 @@ func invoke(username: String) -> ApiResult:
 		var preflight_reason: String = "NOT_SIGNED_IN" if session_token.is_empty() else ""
 		if preflight_reason.is_empty() and normalized_username.is_empty():
 			preflight_reason = "USERNAME_REQUIRED"
-		return ApiResult.fail(preflight_reason)
+		return Result.err(preflight_reason)
 
 	var patch_url: String = "%s/me/username" % client.base_url
-	var patch_result: ApiResult = await (
+	var patch_result: Result = await (
 		ApiRequest
 		. request_json(
 			client,
@@ -26,12 +26,12 @@ func invoke(username: String) -> ApiResult:
 			JSON.stringify({"username": normalized_username})
 		)
 	)
-	if not patch_result.success:
-		return ApiResult.fail(patch_result.reason)
+	if patch_result.is_err():
+		return patch_result
 
-	var response: MeUsernamePatchResponse = MeUsernamePatchResponse.parse(patch_result.body)
+	var response: MeUsernamePatchResponse = MeUsernamePatchResponse.parse(patch_result.value)
 	if response.username.is_empty():
-		return ApiResult.fail("USERNAME_INVALID_RESPONSE")
+		return Result.err("USERNAME_INVALID_RESPONSE")
 	Account.username = response.username
 	Account.username_updated_at = response.username_updated_at_unix
 	return patch_result

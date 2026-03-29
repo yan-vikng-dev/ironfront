@@ -120,13 +120,14 @@ func end_session(status_message: String) -> void:
 
 
 func _send_join_arena() -> void:
-	var ticket_result: ApiResult = await AuthManager.user_service_client.fetch_play_ticket()
-	if not ticket_result.success:
-		push_warning("[client][arena] ticket_fetch_failed reason=%s" % ticket_result.reason)
-		_emit_join_failed(ticket_result.reason)
+	var ticket_result: Result = await AuthManager.user_service_client.fetch_play_ticket()
+	if ticket_result.is_err():
+		var err: String = ticket_result.error
+		push_warning("[client][arena] ticket_fetch_failed reason=%s" % err)
+		_emit_join_failed(err)
 		_reset_to_disconnected()
 		return
-	var response: PlayTicketResponse = ticket_result.body
+	var response: PlayTicketResponse = ticket_result.value
 	if response == null or response.ticket.is_empty():
 		_emit_join_failed("TICKET_FETCH_FAILED")
 		_reset_to_disconnected()

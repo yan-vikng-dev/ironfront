@@ -1,16 +1,24 @@
 class_name CatalogPrices
 extends RefCounted
 
+const PRICE_UNAVAILABLE: int = -1
+
 static var tank_prices: Dictionary[String, int] = {}
 static var shell_prices: Dictionary[String, int] = {}
 
 
 static func get_tank_price(tank_id: String) -> int:
-	return tank_prices.get(tank_id, 0)
+	return tank_prices.get(tank_id, PRICE_UNAVAILABLE)
 
 
 static func get_shell_price(shell_id: String) -> int:
-	return shell_prices.get(shell_id, 0)
+	return shell_prices.get(shell_id, PRICE_UNAVAILABLE)
+
+
+static func format_price(price: int) -> String:
+	if price == PRICE_UNAVAILABLE:
+		return "N/A"
+	return Utils.format_dollars(price)
 
 
 static func apply(body: Dictionary) -> void:

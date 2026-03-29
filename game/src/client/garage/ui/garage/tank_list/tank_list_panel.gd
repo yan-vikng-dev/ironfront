@@ -71,7 +71,10 @@ func _update_item_states() -> void:
 			else:
 				item.state = item.State.UNLOCKED
 		else:
-			if player_dollars >= item.tank_price:
+			if (
+				item.tank_price != CatalogPrices.PRICE_UNAVAILABLE
+				and player_dollars >= item.tank_price
+			):
 				item.state = item.State.UNLOCKABLE
 				item.set_unlock_disabled(_unlock_busy)
 			else:

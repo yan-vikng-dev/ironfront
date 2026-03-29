@@ -1,4 +1,5 @@
-# Brainstorming Session Context
+	var raw_body: Variant = post_result.unwrap()
+	var body: Dictionary = raw_body if raw_body is Dictionary else {}# Brainstorming Session Context
 
 Carried over from a chat in the ThreatLight repo (March 29, 2026).
 

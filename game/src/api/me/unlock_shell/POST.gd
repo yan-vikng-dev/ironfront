@@ -2,18 +2,18 @@ class_name UnlockShellPost
 extends Node
 
 
-func invoke(tank_id: String, shell_id: String) -> ApiResult:
+func invoke(tank_id: String, shell_id: String) -> Result:
 	var client: UserServiceClient = get_parent()
 	var session_token: String = AuthManager.session_token
 	if session_token.is_empty():
-		return ApiResult.fail("NOT_SIGNED_IN")
+		return Result.err("NOT_SIGNED_IN")
 	var normalized_tank_id: String = str(tank_id).strip_edges()
 	var normalized_shell_id: String = str(shell_id).strip_edges()
 	if normalized_tank_id.is_empty() or normalized_shell_id.is_empty():
-		return ApiResult.fail("INVALID_SHELL")
+		return Result.err("INVALID_SHELL")
 
 	var post_url: String = "%s/me/unlock-shell" % client.base_url
-	var post_result: ApiResult = await (
+	var post_result: Result = await (
 		ApiRequest
 		. request_json(
 			client,
@@ -26,10 +26,10 @@ func invoke(tank_id: String, shell_id: String) -> ApiResult:
 			JSON.stringify({"tank_id": normalized_tank_id, "shell_id": normalized_shell_id})
 		)
 	)
-	if not post_result.success:
-		return ApiResult.fail(post_result.reason)
+	if post_result.is_err():
+		return post_result
 
-	var body: Dictionary = post_result.body if post_result.body is Dictionary else {}
+	var body: Dictionary = post_result.value
 	var response: UnlockShellResponse = UnlockShellResponse.parse(body)
 	Account.economy.dollars = response.economy_dollars
 	Account.economy.bonds = response.economy_bonds

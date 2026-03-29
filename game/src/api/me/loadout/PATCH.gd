@@ -2,14 +2,14 @@ class_name MeLoadoutPatch
 extends Node
 
 
-func invoke(loadout_payload: Dictionary) -> ApiResult:
+func invoke(loadout_payload: Dictionary) -> Result:
 	var client: UserServiceClient = get_parent()
 	var session_token: String = AuthManager.session_token
 	if session_token.is_empty():
-		return ApiResult.fail("NOT_SIGNED_IN")
+		return Result.err("NOT_SIGNED_IN")
 
 	var patch_url: String = "%s/me/loadout" % client.base_url
-	var patch_result: ApiResult = await (
+	var patch_result: Result = await (
 		ApiRequest
 		. request_json(
 			client,
@@ -22,10 +22,10 @@ func invoke(loadout_payload: Dictionary) -> ApiResult:
 			JSON.stringify(loadout_payload)
 		)
 	)
-	if not patch_result.success:
-		return ApiResult.fail(patch_result.reason)
+	if patch_result.is_err():
+		return patch_result
 
-	var body: Dictionary = patch_result.body if patch_result.body is Dictionary else {}
+	var body: Dictionary = patch_result.value
 	var loadout_dict: Dictionary = body.get("loadout", {})
 	if loadout_dict.is_empty():
 		return patch_result

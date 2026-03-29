@@ -33,7 +33,7 @@ func _process(delta: float) -> void:
 func _on_tank_unlock_requested(tank_spec: TankSpec) -> void:
 	assert(tank_spec != null, "Missing tank spec")
 	var tank_price: int = CatalogPrices.get_tank_price(tank_spec.tank_id)
-	if Account.economy.dollars < tank_price:
+	if tank_price == CatalogPrices.PRICE_UNAVAILABLE or Account.economy.dollars < tank_price:
 		return
 	var first_shell: ShellSpec = (
 		tank_spec.allowed_shells[0] if not tank_spec.allowed_shells.is_empty() else null
@@ -42,12 +42,12 @@ func _on_tank_unlock_requested(tank_spec: TankSpec) -> void:
 		return
 	var initial_shell_id: String = ShellManager.get_shell_id(first_shell)
 	UiBus.unlock_busy_changed.emit(true)
-	var result: ApiResult = await AuthManager.user_service_client.unlock_tank(
+	var result: Result = await AuthManager.user_service_client.unlock_tank(
 		tank_spec.tank_id, initial_shell_id
 	)
 	UiBus.unlock_busy_changed.emit(false)
-	if not result.success:
-		show_online_join_feedback(result.reason, true)
+	if result.is_err():
+		show_online_join_feedback(result.error, true)
 		return
 
 
@@ -57,15 +57,15 @@ func _on_shell_unlock_requested(shell_spec: ShellSpec) -> void:
 		return
 	var shell_id: String = ShellManager.get_shell_id(shell_spec)
 	var shell_price: int = CatalogPrices.get_shell_price(shell_id)
-	if Account.economy.dollars < shell_price:
+	if shell_price == CatalogPrices.PRICE_UNAVAILABLE or Account.economy.dollars < shell_price:
 		return
 	UiBus.unlock_busy_changed.emit(true)
-	var result: ApiResult = await AuthManager.user_service_client.unlock_shell(
+	var result: Result = await AuthManager.user_service_client.unlock_shell(
 		tank_spec.tank_id, shell_id
 	)
 	UiBus.unlock_busy_changed.emit(false)
-	if not result.success:
-		show_online_join_feedback(result.reason, true)
+	if result.is_err():
+		show_online_join_feedback(result.error, true)
 		return
 
 
@@ -79,9 +79,9 @@ func _on_ammo_loadout_changed() -> void:
 
 func _sync_loadout() -> void:
 	var payload: Dictionary = LoadoutPayload.from_account_loadout(Account.loadout)
-	var result: ApiResult = await AuthManager.user_service_client.update_loadout(payload)
-	if not result.success:
-		show_online_join_feedback(result.reason, true)
+	var result: Result = await AuthManager.user_service_client.update_loadout(payload)
+	if result.is_err():
+		show_online_join_feedback(result.error, true)
 
 
 func show_online_join_feedback(message: String, is_error: bool) -> void:

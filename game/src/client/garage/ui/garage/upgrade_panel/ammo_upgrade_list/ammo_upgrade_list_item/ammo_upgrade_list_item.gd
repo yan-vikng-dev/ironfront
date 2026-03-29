@@ -71,7 +71,7 @@ func display_shell(
 	count_slider.tick_count = clamp(max_cap + 1, 2, MAX_TICK_COUNT)
 	ammo_count_container.show()
 	var shell_id: String = ShellManager.get_shell_id(shell_spec)
-	price_label.text = Utils.format_dollars(CatalogPrices.get_shell_price(shell_id))
+	price_label.text = CatalogPrices.format_price(CatalogPrices.get_shell_price(shell_id))
 	if is_locked:
 		current_allowed_count = 0
 		update_count(0)
@@ -143,7 +143,7 @@ func _refresh_locked_state() -> void:
 	if not is_locked:
 		return
 	var shell_price: int = CatalogPrices.get_shell_price(ShellManager.get_shell_id(shell_spec))
-	if Account.economy.dollars >= shell_price:
+	if shell_price != CatalogPrices.PRICE_UNAVAILABLE and Account.economy.dollars >= shell_price:
 		state = State.UNLOCKABLE
 		return
 	state = State.LOCKED

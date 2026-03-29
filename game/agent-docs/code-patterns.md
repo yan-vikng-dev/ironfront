@@ -71,6 +71,7 @@ var username_updated_at: int = body.get("username_updated_at_unix", 0)
 
 ## 9) Return Structured Results for Cross-Layer Operations
 - For helper calls crossing boundaries, return result dictionaries with explicit status.
+- For API/HTTP results, use the typed `Result` class (see pattern 16).
 
 Good:
 ```gdscript
@@ -181,18 +182,18 @@ Utils.connect_checked(account.selected_tank_spec_updated, _update_item_states)
 - API clients use a router + handler pattern mirroring the user-service server routes.
 - The router is a scene (for example `user_service_client.tscn`) with handler nodes as children. Handlers use `unique_name_in_owner = true` and are referenced via `%UniqueName` or `@onready` vars. The router owns `base_url` (from AppConfig in `_ready`) and `_cancel_all_requests`.
 - Routes are fully defined by folders. Each leaf route folder contains `VERB.gd` (handler) and `types.gd` (DTOs, parsers). Example: `api/me/username/[PATCH.gd, types.gd]`. Handler class names follow `FullRouteVerb`: `AuthExchangePost`, `MeGet`, `MeUsernamePatch`.
-- Handlers expose `func invoke(...args) -> ApiResult` (instance method). They call `ApiRequest.request_json(...)` for HTTP; the static transport lives in `api/request.gd`.
-- Shared types (`ApiResult`) and transport (`ApiRequest.request_json` in `api/request.gd`) stay at `api/` root.
+- Handlers expose `func invoke(...args) -> Result` (instance method). They call `ApiRequest.request_json(...)` for HTTP; the static transport lives in `api/request.gd`.
+- Shared types (`Result`) and transport (`ApiRequest.request_json` in `api/request.gd`) stay at `api/` root.
 - Multi-step flows (for example exchange then fetch profile) are orchestrated in the router, not inside a single handler.
 - Response DTOs use `*Response` suffix (for example `AuthExchangeResponse`, `MeUsernamePatchResponse`). API contract types use `*Payload` (for example `LoadoutPayload` for serialize/deserialize).
-- Response parsers: `static func parse(body: Dictionary) -> T`. Use `null` on validation failure when the response is invalid; return a typed object on success.
+- Response parsers: `static func parse(body: Dictionary) -> T`. Use `null` on validation failure when the response is invalid; return a typed object on success. Parsers returning null compose with `Result.and_then(Parser.parse, "REASON")`.
 
 Good (`src/api/` structure):
 ```
 api/
 ├── user_service_client.tscn    # Router scene with handlers as unique-name children
 ├── user_service_client.gd
-├── api_result.gd               # Shared result type
+├── result.gd                   # Shared Result type (Rust-style ok/err/unwrap/and_then)
 ├── request.gd                  # ApiRequest.request_json (static transport)
 ├── auth/
 │   └── exchange/
@@ -220,79 +221,87 @@ api/
         └── types.gd            # PlayTicketResponse
 ```
 
-## 16) Avoid Overdefensive API Methods
+## 16) Avoid Overdefensive API Methods — Use Rust-Style Result
+- The shared `Result` class (`api/result.gd`) follows Rust `Result<T, E>` conventions.
+- Constructors: `Result.ok(value)`, `Result.err(reason)`.
+- Queries: `is_ok()`, `is_err()`.
+- Access: `.value` (ok payload), `.error` (err reason). Access after checking `is_ok()`/`is_err()`.
+- Chaining: `and_then(transform, err_reason)` — on ok, calls `transform(value)`; if transform returns null, produces `Result.err(err_reason)`.
 - Avoid deeply nested and overdefensive single-method flows for straightforward HTTP operations.
 - Prefer direct, linear control flow with a clear success/failure boundary.
 
-Good (ApiResult + linear flow; handlers in `src/api/` follow this style):
+Result API:
 ```gdscript
-class ApiResult:
+class Result:
 	extends RefCounted
-	var success: bool
-	var reason: String
-	var body: Variant
+	var value: Variant        # ok payload (access after is_ok check)
+	var error: String         # err reason (access after is_err check)
+	static func ok(value: Variant = null) -> Result: ...
+	static func err(reason: String) -> Result: ...
+	func is_ok() -> bool: ...
+	func is_err() -> bool: ...
+	func and_then(transform: Callable, err_reason: String) -> Result: ...
+```
 
-	static func ok(next_body: Variant) -> ApiResult:
-		return ApiResult.new(true, "", next_body)
+Good — error propagation (GDScript equivalent of Rust's `?` operator):
+```gdscript
+func invoke() -> Result:
+	var http_result: Result = await ApiRequest.request_json(...)
+	if http_result.is_err():
+		return http_result  # forward error to caller
 
-	static func fail(next_reason: String) -> ApiResult:
-		return ApiResult.new(false, next_reason, null)
+	var body: Dictionary = http_result.value
+	return Result.ok(body)
+```
 
-
-func update_username(username: String) -> ApiResult:
+Good — preflight validation before async work:
+```gdscript
+func invoke(tank_id: String) -> Result:
 	var session_token: String = AuthManager.session_token
-	var normalized_username: String = username.strip_edges()
-	if session_token.is_empty() or normalized_username.is_empty():
-		var preflight_reason: String = "NOT_SIGNED_IN" if session_token.is_empty() else ""
-		if preflight_reason.is_empty() and normalized_username.is_empty():
-			preflight_reason = "USERNAME_REQUIRED"
-		return ApiResult.fail(preflight_reason)
+	if session_token.is_empty():
+		return Result.err("NOT_SIGNED_IN")
+	if tank_id.strip_edges().is_empty():
+		return Result.err("INVALID_TANK")
 
-	var patch_result: ApiResult = await _request_json(
-		"%s/me/username" % _base_url,
-		HTTPClient.METHOD_PATCH,
-		[
-			"Content-Type: application/json",
-			"Authorization: Bearer %s" % session_token,
-		],
-		JSON.stringify({"username": normalized_username})
-	)
-	if not patch_result.success:
-		return ApiResult.fail(patch_result.reason)
+	var post_result: Result = await ApiRequest.request_json(...)
+	if post_result.is_err():
+		return post_result
+	# ... apply side effects ...
+	return post_result
+```
 
-	var body: Dictionary = patch_result.body
-	var response_username: String = str(body.get("username", "")).strip_edges()
-	if response_username.is_empty():
-		return ApiResult.fail("USERNAME_INVALID_RESPONSE")
+Good — `and_then` for parse-or-fail in one call:
+```gdscript
+func invoke(provider: String, proof: String) -> Result:
+	var exchange_result: Result = await ApiRequest.request_json(...)
+	return exchange_result.and_then(AuthExchangeResponse.parse, "EXCHANGE_PARSE_FAILED")
+```
 
-	Account.username = response_username
-	var username_updated_at_unix: Variant = body.username_updated_at_unix
-	Account.username_updated_at = int(username_updated_at_unix) if username_updated_at_unix != null else 0
-	return ApiResult.ok(body)
+Good — multi-step orchestration, bailing on first failure:
+```gdscript
+func exchange_auth(provider: String, proof: String) -> Result:
+	var exchange_result: Result = await _auth_exchange_post.invoke(provider, proof)
+	if exchange_result.is_err():
+		return exchange_result
 
+	var catalog_result: Result = await _catalog_get.invoke()
+	if catalog_result.is_err():
+		return Result.err("CATALOG_FETCH_FAILED")  # override with contextual reason
 
-func _request_json(
-	url: String, method: HTTPClient.Method, headers: PackedStringArray, body: String
-) -> ApiResult:
-	if not is_inside_tree():
-		return ApiResult.fail("USER_SERVICE_HTTP_REQUEST_CANCELED")
-	var request: HTTPRequest = HTTPRequest.new()
-	add_child(request)
-	var request_error: Error = request.request(url, headers, method, body)
-	if request_error != OK:
-		request.queue_free()
-		return ApiResult.fail("USER_SERVICE_HTTP_REQUEST_FAILED")
-	var response: Array = await request.request_completed
-	if is_instance_valid(request):
-		request.queue_free()
-	if int(response[0]) != HTTPRequest.RESULT_SUCCESS:
-		return ApiResult.fail("USER_SERVICE_HTTP_TRANSPORT_FAILED")
-	var response_code: int = int(response[1])
-	var parsed_body: Variant = JSON.parse_string(response[3].get_string_from_utf8())
-	var parsed: Dictionary = parsed_body if parsed_body is Dictionary else {}
-	if response_code < 200 or response_code >= 300:
-		return ApiResult.fail(str(parsed.get("error", "USER_SERVICE_HTTP_ERROR")))
-	return ApiResult.ok(parsed)
+	var me_result: Result = await _me_get.invoke(exchange_result.value.session_token)
+	if me_result.is_err():
+		return me_result
+
+	return Result.ok(ExchangeAuthResult.new(exchange_result.value, me_result.value))
+```
+
+Good — consumer-side branching:
+```gdscript
+var result: Result = await client.update_username(username)
+if result.is_ok():
+	hide_prompt()
+	return
+show_error(result.error)
 ```
 
 Bad (deeply nested alternative; avoid this):
@@ -307,60 +316,8 @@ func update_username(username: String) -> Dictionary[String, Variant]:
 		if normalized_username.is_empty():
 			result.reason = "USERNAME_REQUIRED"
 		else:
-			_log_user_service("updating username")
-			var patch_url: String = "%s/me/username" % _base_url
-			var request: HTTPRequest = HTTPRequest.new()
-			add_child(request)
-			var request_error: Error = (
-				request
-				. request(
-					patch_url,
-					[
-						"Content-Type: application/json",
-						"Authorization: Bearer %s" % session_token,
-					],
-					HTTPClient.METHOD_PATCH,
-					JSON.stringify({"username": normalized_username})
-				)
-			)
-			if request_error != OK:
-				request.queue_free()
-				result.reason = "USER_SERVICE_HTTP_REQUEST_FAILED"
-			else:
-				var response: Array = await request.request_completed
-				if is_instance_valid(request):
-					request.queue_free()
-				var transport_result: int = int(response[0])
-				if transport_result != HTTPRequest.RESULT_SUCCESS:
-					result.reason = "USER_SERVICE_HTTP_TRANSPORT_FAILED"
-				else:
-					var response_code: int = int(response[1])
-					var response_body: PackedByteArray = response[3]
-					var parsed_body: Variant = JSON.parse_string(
-						response_body.get_string_from_utf8()
-					)
-					var parsed_dictionary: Dictionary = (
-						parsed_body if parsed_body is Dictionary else {}
-					)
-					result.data = parsed_dictionary
-					if response_code < 200 or response_code >= 300:
-						result.reason = str(
-							parsed_dictionary.get("error", "USERNAME_UPDATE_FAILED")
-						)
-					else:
-						var response_username: String = (
-							str(parsed_dictionary.get("username", "")).strip_edges()
-						)
-						if response_username.is_empty():
-							result.reason = "USERNAME_INVALID_RESPONSE"
-						else:
-							Account.username = response_username
-							Account.username_updated_at = int(
-								parsed_dictionary.get("username_updated_at_unix", 0)
-							)
-							result.success = true
-							result.reason = ""
-
+			# ... deeply nested HTTP + parse + error handling ...
+			pass
 	return result
 ```
 

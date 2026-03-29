@@ -92,7 +92,9 @@ func _update_shell_stats(shell_spec: ShellSpec) -> void:
 	if shell_spec.base_shell_type.is_subcaliber:
 		text += "Penetrator Caliber: %0.1f mm\n" % shell_spec.get_penetrator_caliber()
 	var shell_id: String = ShellManager.get_shell_id(shell_spec)
-	text += "Unlock Cost: %s\n" % Utils.format_dollars(CatalogPrices.get_shell_price(shell_id))
+	text += (
+		"Unlock Cost: %s\n" % CatalogPrices.format_price(CatalogPrices.get_shell_price(shell_id))
+	)
 	text += "Flags: %s" % _get_flag_text(shell_spec)
 	shell_stats_label.text = text
 

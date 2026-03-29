@@ -30,15 +30,15 @@ func _on_panel_quit_pressed() -> void:
 
 
 func _on_panel_username_submitted(username: String) -> void:
-	var update_result: ApiResult = await (AuthManager.user_service_client.update_username(username))
+	var update_result: Result = await (AuthManager.user_service_client.update_username(username))
 	if not is_inside_tree():
 		return
-	if update_result.success:
+	if update_result.is_ok():
 		_panel.hide_username_prompt()
 		login_completed.emit()
 		return
 	_panel.set_username_idle()
-	_panel.show_username_error(update_result.reason)
+	_panel.show_username_error(update_result.error)
 
 
 func _attempt_sign_in() -> void:

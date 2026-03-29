@@ -2,18 +2,18 @@ class_name UnlockTankPost
 extends Node
 
 
-func invoke(tank_id: String, initial_shell_id: String) -> ApiResult:
+func invoke(tank_id: String, initial_shell_id: String) -> Result:
 	var client: UserServiceClient = get_parent()
 	var session_token: String = AuthManager.session_token
 	if session_token.is_empty():
-		return ApiResult.fail("NOT_SIGNED_IN")
+		return Result.err("NOT_SIGNED_IN")
 	var normalized_tank_id: String = str(tank_id).strip_edges()
 	var normalized_shell_id: String = str(initial_shell_id).strip_edges()
 	if normalized_tank_id.is_empty() or normalized_shell_id.is_empty():
-		return ApiResult.fail("INVALID_TANK")
+		return Result.err("INVALID_TANK")
 
 	var post_url: String = "%s/me/unlock-tank" % client.base_url
-	var post_result: ApiResult = await (
+	var post_result: Result = await (
 		ApiRequest
 		. request_json(
 			client,
@@ -34,10 +34,10 @@ func invoke(tank_id: String, initial_shell_id: String) -> ApiResult:
 			)
 		)
 	)
-	if not post_result.success:
-		return ApiResult.fail(post_result.reason)
+	if post_result.is_err():
+		return post_result
 
-	var body: Dictionary = post_result.body if post_result.body is Dictionary else {}
+	var body: Dictionary = post_result.value
 	var response: UnlockTankResponse = UnlockTankResponse.parse(body)
 	Account.economy.dollars = response.economy_dollars
 	Account.economy.bonds = response.economy_bonds

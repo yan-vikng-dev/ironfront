@@ -4,6 +4,7 @@ import * as config from "./config.ts";
 import { enabledApis } from "./services.ts";
 
 const serviceName = `user-service-${config.userServiceStage}`;
+const userServiceCustomDomain = "api.ironfront.live";
 
 const runServiceAccount = new gcp.serviceaccount.Account(
   `${serviceName}-sa`,
@@ -112,6 +113,7 @@ const service = new gcp.cloudrunv2.Service(
     name: serviceName,
     deletionProtection: false,
     ingress: "INGRESS_TRAFFIC_ALL",
+    defaultUriDisabled: true,
     template: {
       serviceAccount: runServiceAccount.email,
       scaling: { minInstanceCount: 0, maxInstanceCount: 2 },
@@ -137,11 +139,11 @@ new gcp.cloudrun.DomainMapping(
   {
     project: config.project,
     location: config.region,
-    name: "api.ironfront.live",
+    name: userServiceCustomDomain,
     metadata: { namespace: config.project },
     spec: { routeName: serviceName }
   },
   { dependsOn: [service] }
 );
 
-export const serviceUrl = service.uri;
+export const userServicePublicUrl = `https://${userServiceCustomDomain}`;
